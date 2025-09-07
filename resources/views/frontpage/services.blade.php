@@ -92,7 +92,7 @@
             <a href="{{route('frontpage.services.detail', $service->id)}}" class="flex flex-col gap-5 group">
                 <div class="relative overflow-hidden rounded-xl">
                     @if($service->cover)
-                        <img src="{{ asset('storage/' . $service->cover) }}" alt="{{ $service->name }}" 
+                        <img src="{{Storage::url($service->cover)}}" alt="{{ $service->name }}" 
                              class="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
                              onerror="this.onerror=null; this.src='{{ asset('images/placeholder-service.jpg') }}';">
                     @else

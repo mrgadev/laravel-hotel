@@ -101,7 +101,8 @@
                 <div class="relative flex h-40 cursor-pointer overflow-hidden rounded-xl">
                     <a href="#image-modal-{{ $index }}" class="block h-full w-full">
                         <img class="h-full w-full object-cover object-center hover:scale-105 transition-transform duration-300"
-                             src="{{ asset('storage/' . $image) }}" 
+                             src="{{ Storage::url($image) }}" 
+                             {{-- src="{{ asset('storage/' . $image) }}"  --}}
                              alt="{{ $service->name }} - Image {{ $index + 1 }}"
                              onerror="this.onerror=null; this.src='{{ asset('images/placeholder-service.jpg') }}';">
                     </a>

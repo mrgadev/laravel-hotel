@@ -86,8 +86,8 @@
         <div class="flex flex-col gap-5 mb-10">
             <div class="relative">
                 @if($promo->cover)
-                    <img src="{{ asset('storage/' . $promo->cover) }}" alt="{{ $promo->name }}" class="w-full h-48 object-cover rounded-xl relative" 
-                         onerror="this.onerror=null; this.src='{{ asset('images/placeholder-promo.jpg') }}';">
+                    <img src="https://unsinnsolo.co.id/wp-content/uploads/2024/12/Madukara-Room_1_11zon-scaled.jpg" class="w-full h-48 object-cover rounded-xl relative">
+                    {{-- <img src="{{ asset('storage/' . $promo->cover) }}" alt="{{ $promo->name }}" class="w-full h-48 object-cover rounded-xl relative" onerror="this.onerror=null; this.src='{{ asset('images/placeholder-promo.jpg') }}';"> --}}
                 @else
                     <div class="w-full h-48 bg-gray-200 rounded-xl flex items-center justify-center">
                         <span class="text-gray-500">No Image</span>
