@@ -233,6 +233,21 @@
         </div>
     </section>
 </header>
+
+{{-- Our Services Section --}}
+<div class="px-12 xl:px-36 py-12 flex justify-between gap-10">
+    <div class="flex flex-col gap-5 justify-center">
+        <div class="flex flex-col gap-1">
+            <p class="font-medium text-primary-400">Selamat Datang di UNS Inn</p>
+            <h2 class="text-3xl font-medium text-primary-700">
+                Tentang Kami
+            </h2>
+        </div>
+        <p>UNS Inn sebuah pesona hospitality kota Solo yang terletak di daerah strategis, dikelilingi pusat perbelanjaan modern, pusat bisnis, dan sarana pendidikan bertaraf internasional.  Berada di dalam universitas terbesar kota Solo dan berlokasi di zona lingkungan hijau, UNS Inn menawarkan sebuah perpaduan sempurna antara budaya, kehangatan, intelektual dan keprofesionalan hospitality yang begitu unik dan sulit anda lupakan.</p>
+    </div>
+    <img src="{{asset('assets/img/tentang-uns-inn.png')}}" alt="" class="w-1/2 rounded-xl object-cover object-center flex-grow">
+</div>
+
 {{-- Our Rooms Section --}}
 <div class="px-12 xl:px-36 py-6">
     <div class="flex items-center justify-between">
@@ -284,7 +299,7 @@
 
 
 {{-- Our Services Section --}}
-<div class="px-12 xl:px-36 py-12">
+{{-- <div class="px-12 xl:px-36 py-12">
     <div class="flex flex-col gap-1 justify-center items-center">
         <p class="font-medium text-primary-400">Kenali</p>
         <h2 class="text-3xl font-medium text-primary-700">
@@ -292,7 +307,6 @@
         </h2>
     </div>
     <div class="grid xl:grid-cols-2 gap-5 my-11">
-        {{-- <img src="https://via.placeholder.com/600x400?text=Service+Image" alt=""> --}}
         <img src="{{ $frontpage_site_setting && $frontpage_site_setting->service_image ? url($frontpage_site_setting->service_image) : 'https://via.placeholder.com/600x400?text=Service+Image' }}" class="lg:w-1/2" alt="">
         <div class="flex flex-col gap-8">
             @if($hotel_services && count($hotel_services) > 0)
@@ -312,7 +326,7 @@
             @endif
         </div>
     </div>
-</div>
+</div> --}}
 
 {{-- Our Location Section --}}
 <div class="px-12 xl:px-36 my-10">
