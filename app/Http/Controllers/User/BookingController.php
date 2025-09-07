@@ -23,15 +23,23 @@ class BookingController extends Controller
         return view('dashboard.user.bookings.detail', compact('transaction', 'room_review'));
     }
 
+    // public function export(Transaction $transaction) {
+    //     $room_review = RoomReview::where('transaction_id', $transaction->id)->first();
+    //     $filename = "Invoice-".$transaction->invoice."-".date("d-m-Y");
+    //     return Pdf::view('dashboard.user.bookings.export', ['transaction' => $transaction])
+    //         ->format('a4')
+    //         ->name($filename.'.pdf')
+    //         ->margins(20, 20, 20, 20) // left, top, right, bottom
+    //         ->download();
+    //     // return view('dashboard.user.bookings.export', compact('transaction', 'room_review'));
+    // }
     public function export(Transaction $transaction) {
         $room_review = RoomReview::where('transaction_id', $transaction->id)->first();
         $filename = "Invoice-".$transaction->invoice."-".date("d-m-Y");
-        return Pdf::view('dashboard.user.bookings.export', ['transaction' => $transaction])
-            ->format('a4')
-            ->name($filename.'.pdf')
-            ->margins(20, 20, 20, 20) // left, top, right, bottom
-            ->download();
-        // return view('dashboard.user.bookings.export', compact('transaction', 'room_review'));
+        
+        // Menggunakan DomPDF instead of Spatie PDF
+        $pdf = Pdf::loadView('dashboard.user.bookings.export', compact('transaction', 'room_review'));
+        return $pdf->download($filename.'.pdf');
     }
 
     public function checkOut(Request $request, Transaction $transaction)

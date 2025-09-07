@@ -37,7 +37,7 @@
         <section class="container px-6 mx-auto">
             <main class="col-span-12 md:pt-0">
                 <div class="p-2 mt-2 bg-white rounded-xl shadow-lg">
-                    <form action="{{route('dashboard.hotel_services.store')}}" method="POST" enctype="multipart/form-data">
+                    <form action="{{route('dashboard.hotel-services.store')}}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('POST')
                         <div class="">

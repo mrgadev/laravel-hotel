@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('name')->nullable();
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
+            $table->string('slug')->unique();
             $table->longText('message');
 
             $table->foreignUuid('user_id')->references('id')->on('users')->onDelete('cascade');
