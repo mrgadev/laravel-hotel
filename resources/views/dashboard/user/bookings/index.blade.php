@@ -103,7 +103,7 @@
                                     <p>{{Carbon\Carbon::parse($transaction->check_out)->isoFormat('D MMM YYYY')}}</p>
                                 </td>
                                 <td class="">
-                                    @if($transaction->checkin_status == 'Sudah Checkin')
+                                    @if($transaction->checkin_status == 'Sudah Check-in')
                                     <p class="p-2 rounded-lg bg-green-100 border border-green-700 text-green-700 text-sm w-fit">{{$transaction->checkin_status}}</p>
                                     @elseif($transaction->checkin_status == 'Sudah Checkout')
                                     <p class="p-2 rounded-lg bg-green-100 border border-green-700 text-green-700 text-sm w-fit">{{$transaction->checkin_status}}</p>

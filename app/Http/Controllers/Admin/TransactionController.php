@@ -24,7 +24,7 @@ class TransactionController extends Controller
         $data = $request->validate([
             'checkin_status' => 'required'
         ]);
-        if($data['checkin_status'] == 'Sudah Checkin') {
+        if($data['checkin_status'] == 'Sudah Check-in') {
             $data['checkin_date'] = now();
         } elseif($data['checkin_status'] == 'Sudah Checkout') {
             $data['checkout_date'] = now();

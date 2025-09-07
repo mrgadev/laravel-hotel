@@ -232,7 +232,7 @@
                                         </td>
                                         <td class="p-4">
                                             <div class="flex flex-col items-center gap-1">
-                                                @if($transaction->checkin_status == 'Sudah Checkin')
+                                                @if($transaction->checkin_status == 'Sudah Check-in')
                                                 <h3 class="font-normal p-2 bg-green-100 border border-green-700 text-green-700 rounded-lg w-fit">{{ $transaction->checkin_status }}</h3>
                                                 @elseif($transaction->checkin_status == 'Sudah Checkout')
                                                 <h3 class="font-normal p-2 bg-green-100 border border-green-700 text-green-700 rounded-lg w-fit">{{ $transaction->checkin_status }}</h3>

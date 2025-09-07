@@ -53,11 +53,11 @@ class DashboardController extends Controller
             if (auth()->user()->hasRole(['admin', 'staff'])) {
                 $adminData = [
                     'bookedRooms' => DB::table('transactions')
-                        ->where('checkin_status', 'Sudah Checkin')
+                        ->where('checkin_status', 'Sudah Check-in')
                         ->count(),
                     'availableRooms' => max(0, 
                         DB::table('rooms')->sum('available_rooms') - 
-                        DB::table('transactions')->where('checkin_status', 'Sudah Checkin')->count()
+                        DB::table('transactions')->where('checkin_status', 'Sudah Check-in')->count()
                     ),
                     'transactions' => Transaction::with('user')->latest()->limit(5)->get()
                 ];

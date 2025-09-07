@@ -5,7 +5,7 @@
         </div>
         <div class="flex items-center mt-2 grow sm:mt-0 sm:mr-6 md:mr-0 lg:flex lg:basis-auto gap-5">
             <div class="flex items-center gap-1 md:ml-auto md:pr-4 bg-primary-100 text-primary-700 p-2.5 rounded-lg text-sm">
-                <span class="material-symbols-rounded">event</span>{{now()->isoFormat('dddd, D MMMM YYYY')}}
+                <span class="material-symbols-rounded">event</span>{{ now()->translatedFormat('l, d F Y') }}
             </div>
             <ul class="flex flex-row justify-end pl-0 mb-0 list-none md-max:w-full">
                 <!-- online builder btn  -->

@@ -67,9 +67,9 @@
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Status Check-in</label>
                                 <select id="checkinStatusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
                                     <option value="">Semua Status</option>
-                                    <option value="Belum">Belum Check-in</option>
-                                    <option value="Sudah Checkin">Sudah Check-in</option>
-                                    <option value="Sudah Checkout">Sudah Check-out</option>
+                                    <option value="Belum Check-in">Belum Check-in</option>
+                                    <option value="Sudah Check-in">Sudah Check-in</option>
+                                    <option value="Sudah Check-out">Sudah Check-out</option>
                                     <option value="Dibatalkan">Dibatalkan</option>
                                 </select>
                             </div>
@@ -247,17 +247,17 @@
                                             @endif
                                         </td>
                                         <td>
-                                            @if($transaction->checkin_status == 'Sudah Checkin')
+                                            @if($transaction->checkin_status == 'Sudah Check-in')
                                                 <span class="px-3 py-1 rounded-full bg-green-100 border border-green-300 text-green-700 text-sm font-medium">
                                                     Sudah Check-in
                                                 </span>
-                                            @elseif($transaction->checkin_status == 'Sudah Checkout')
+                                            @elseif($transaction->checkin_status == 'Sudah Check-out')
                                                 <span class="px-3 py-1 rounded-full bg-blue-100 border border-blue-300 text-blue-700 text-sm font-medium">
                                                     Sudah Check-out
                                                 </span>
-                                            @elseif($transaction->checkin_status == 'Belum')
+                                            @elseif($transaction->checkin_status == 'Belum Check-in')
                                                 <span class="px-3 py-1 rounded-full bg-yellow-100 border border-yellow-300 text-yellow-700 text-sm font-medium">
-                                                    Belum
+                                                    Belum Check-in
                                                 </span>
                                             @elseif($transaction->checkin_status == 'Dibatalkan')
                                                 <span class="px-3 py-1 rounded-full bg-red-100 border border-red-300 text-red-700 text-sm font-medium">
@@ -385,8 +385,8 @@
                                 <select name="checkin_status" id="newCheckinStatus" class="block w-full px-4 py-2 border rounded focus:ring-2 focus:ring-primary-500" required>
                                     <option value="">--Pilih Status Check-in--</option>
                                     <option value="Belum">Belum</option>
-                                    <option value="Sudah Checkin">Sudah Check-in</option>
-                                    <option value="Sudah Checkout">Sudah Check-out</option>
+                                    <option value="Sudah Check-in">Sudah Check-in</option>
+                                    <option value="Sudah Check-out">Sudah Check-out</option>
                                     <option value="Dibatalkan">Dibatalkan</option>
                                 </select>
                             </div>

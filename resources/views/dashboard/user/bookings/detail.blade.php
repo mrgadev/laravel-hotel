@@ -155,10 +155,10 @@
                             <div class="flex flex-col gap-1">
                                 <p>Status Reservasi</p>
                                 <p class="font-medium text-primary-700">{{$transaction->checkin_status}}</p>
-                                @if($transaction->checkin_status == 'Sudah Checkin')
-                                <p class="font-medium text-primary-700">{{Carbon\Carbon::parse($transaction->checkin_date)->isoFormat('ddd, DD MMM YYYY H:M')}}</p>
-                                @elseif($transaction->checkin_status == 'Sudah Checkout')
-                                <p class="font-medium text-primary-700">{{Carbon\Carbon::parse($transaction->checkout_date)->isoFormat('ddd, DD MMM YYYY H:M')}}</p>
+                                @if($transaction->checkin_status == 'Sudah Check-in')
+                                <p class="font-medium text-primary-700">{{ \Carbon\Carbon::parse($transaction->checkin_date)->translatedFormat('l, d F Y') }}</p>
+                                @elseif($transaction->checkin_status == 'Sudah Check-out')
+                                <p class="font-medium text-primary-700">{{ \Carbon\Carbon::parse($transaction->checkout_date)->translatedFormat('l, d F Y') }}</p>
                                 @endif
                             </div>
 
