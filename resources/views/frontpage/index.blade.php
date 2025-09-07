@@ -287,8 +287,8 @@
         </h2>
     </div>
     <div class="grid xl:grid-cols-2 gap-5 my-11">
-        <img src="https://via.placeholder.com/600x400?text=Service+Image" alt="">
-        {{-- <img src="{{ $frontpage_site_setting && $frontpage_site_setting->service_image ? url($frontpage_site_setting->service_image) : 'https://via.placeholder.com/600x400?text=Service+Image' }}" alt=""> --}}
+        {{-- <img src="https://via.placeholder.com/600x400?text=Service+Image" alt=""> --}}
+        <img src="{{ $frontpage_site_setting && $frontpage_site_setting->service_image ? url($frontpage_site_setting->service_image) : 'https://via.placeholder.com/600x400?text=Service+Image' }}" alt="">
         <div class="flex flex-col gap-8">
             @if($hotel_services && count($hotel_services) > 0)
                 @foreach ($hotel_services as $hotel_service)
