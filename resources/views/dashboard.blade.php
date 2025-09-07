@@ -21,8 +21,8 @@
         @php
             $total_rooms = App\Models\Room::count() ?? 0;
             $total_reservations = App\Models\Transaction::count() ?? 0;
-            $total_check_in = App\Models\Transaction::where('checkin_status', 'Sudah Checkin')->count() ?? 0;
-            $total_revenue = App\Models\Transaction::where('checkin_status', 'Sudah Checkin')->sum('total_price') ?? 0;
+            $total_check_in = App\Models\Transaction::where('checkin_status', 'Sudah Check-in')->count() ?? 0;
+            $total_revenue = App\Models\Transaction::where('checkin_status', 'Sudah Check-in')->sum('total_price') ?? 0;
             
             // Pastikan variabel untuk chart ada
             $bookedRooms = $bookedRooms ?? 0;
