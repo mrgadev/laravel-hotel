@@ -530,7 +530,7 @@
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            const total = {{ $bookedRooms + $availableRooms }};
+                            const total = {{ $bookedRooms ?? 0 + $availableRooms ?? 0}};
                             const percentage = Math.round((context.raw / total) * 100);
                             return `${context.label}: ${context.raw} (${percentage}%)`;
                         }
