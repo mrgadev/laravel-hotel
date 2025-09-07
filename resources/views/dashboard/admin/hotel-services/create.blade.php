@@ -21,7 +21,7 @@
                         <span class="material-symbols-rounded scale-75">home</span>
                     </a>
                     <span class="material-symbols-rounded">chevron_right</span>
-                    <a href="{{route('dashboard.hotel-facilities.index')}}" class="flex items-center hover:underline">
+                    <a href="{{route('dashboard.hotel-services.index')}}" class="flex items-center hover:underline">
                         <p>Layanan Hotel</p>
                     </a>
                     <span class="material-symbols-rounded">chevron_right</span>

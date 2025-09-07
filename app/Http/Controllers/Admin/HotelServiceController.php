@@ -13,8 +13,8 @@ class HotelServiceController extends Controller
      */
     public function index()
     {
-        $hotel_services = HotelService::all();
-        return view('dashboard.admin.hotel-services.index', compact('hotel_services'));
+        $layanan_hotels = HotelService::all();
+        return view('dashboard.admin.hotel-services.index', compact('layanan_hotels'));
     }
 
     /**
@@ -46,7 +46,7 @@ class HotelServiceController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(HotelService $hotel_service)
+    public function show(HotelService $layanan_hotel)
     {
         //
     }
@@ -54,7 +54,7 @@ class HotelServiceController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(HotelService $hotel_service)
+    public function edit(HotelService $layanan_hotel)
     {
         return view('dashboard.admin.hotel-services.edit');
     }
@@ -62,7 +62,7 @@ class HotelServiceController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, HotelService $hotel_service)
+    public function update(Request $request, HotelService $layanan_hotel)
     {
         $message = [
             'name.required' => 'Nama wajib diisi',
@@ -72,16 +72,16 @@ class HotelServiceController extends Controller
             'icon' => 'string',
             'description' => 'nullable|string',
         ]);
-        $hotel_service->update($data);
+        $layanan_hotel->update($data);
         return redirect()->route('dashboard.hotel-services.index')->with('success', 'Data berhasil diubah');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(HotelService $hotel_service)
+    public function destroy(HotelService $layanan_hotel)
     {
-        $hotel_service->delete();
+        $layanan_hotel->delete();
         return redirect()->route('dashboard.hotel-services.index')->with('success', 'Data berhasil dihapus');
     }
 }

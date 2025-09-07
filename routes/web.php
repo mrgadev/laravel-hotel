@@ -40,6 +40,7 @@ require __DIR__ . '/user.php';
 require __DIR__ . '/payment.php';
 require __DIR__ . '/admin.php';
 // require __DIR__ . '/web.php';
+
 Route::name('frontpage.')->group(function() {
     Route::get('/', [FrontpageController::class, 'index'])->name('index');
 
@@ -64,12 +65,18 @@ Route::name('frontpage.')->group(function() {
     Route::post('/pesan', [FeedbackController::class, 'store'])->name('message.store');
 });
 
+// Ajax authentication routes
 Route::prefix('ajax')->name('ajax.')->group(function () {
+    // Authentication routes
     Route::post('/login', [App\Http\Controllers\Auth\AjaxAuthController::class, 'login'])->name('login');
     Route::post('/register', [App\Http\Controllers\Auth\AjaxAuthController::class, 'register'])->name('register');
     Route::post('/verify-otp', [App\Http\Controllers\Auth\AjaxAuthController::class, 'verifyOtp'])->name('verify.otp');
     Route::post('/resend-otp', [App\Http\Controllers\Auth\AjaxAuthController::class, 'resendOtp'])->name('resend.otp');
+    
+    // New route for triggering verification for unverified users
+    Route::post('/trigger-verification', [App\Http\Controllers\Auth\AjaxAuthController::class, 'triggerVerification'])->name('trigger.verification');
 });
 
+// Social authentication routes
 Route::get('/auth/google/redirect', [SocialiteController::class, 'redirectToGoogle'])->name('auth.google.redirect');
 Route::get('/auth/google/callback', [SocialiteController::class, 'handleGoogleCallback'])->name('auth.google.callback');

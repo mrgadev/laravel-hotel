@@ -413,8 +413,8 @@
 
             // Handle booking button clicks
             function handleBooking() {
-                const checkIn = document.getElementById('checkIn').value;
-                const checkOut = document.getElementById('checkOut').value;
+                const checkIn = document.getElementById('checkIn') ? document.getElementById('checkIn').value : '';
+                const checkOut = document.getElementById('checkOut') ? document.getElementById('checkOut').value : '';
 
                 // Validate dates for desktop form
                 if (bookingBtn && (!checkIn || !checkOut)) {
@@ -424,7 +424,7 @@
 
                 // Store booking data
                 bookingData = {
-                    room_id: {{ $room->id }},
+                    room_id: {{ $room->id ?? 'null' }},
                     check_in: checkIn || new Date().toISOString().split('T')[0],
                     check_out: checkOut || new Date(Date.now() + 86400000).toISOString().split('T')[0]
                 };
@@ -464,6 +464,7 @@
             showRegister.addEventListener('click', function() {
                 loginForm.classList.add('hidden');
                 registerForm.classList.remove('hidden');
+                otpForm.classList.add('hidden');
                 modalTitle.textContent = 'Buat Akun Baru';
             });
 
@@ -474,7 +475,7 @@
                 modalTitle.textContent = 'Masuk ke Akun Anda';
             });
 
-            // Handle login form submission
+            // Enhanced login form handler
             loginForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
@@ -485,7 +486,15 @@
                 });
                 
                 const loginError = document.getElementById('loginError');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                
+                // Clear previous errors
                 loginError.classList.add('hidden');
+                
+                // Show loading state
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = 'Masuk...';
+                submitBtn.disabled = true;
                 
                 fetch(baseUrl + '/ajax/login', {
                     method: 'POST',
@@ -501,8 +510,28 @@
                         authModal.classList.add('hidden');
                         // Redirect to checkout with booking data
                         window.location.href = data.redirect_url;
+                    } else if (data.need_verification) {
+                        // Handle unverified user
+                        currentUserId = data.user_id;
+                        currentUserPhone = data.phone;
+                        
+                        // Trigger verification process
+                        triggerVerification(data.user_id);
                     } else {
-                        loginError.textContent = data.message || 'Login gagal. Silakan coba lagi.';
+                        // Display error message
+                        if (data.errors) {
+                            let errorMessages = [];
+                            Object.keys(data.errors).forEach(field => {
+                                if (Array.isArray(data.errors[field])) {
+                                    errorMessages.push(...data.errors[field]);
+                                } else {
+                                    errorMessages.push(data.errors[field]);
+                                }
+                            });
+                            loginError.innerHTML = errorMessages.join('<br>');
+                        } else {
+                            loginError.textContent = data.message || 'Login gagal. Silakan coba lagi.';
+                        }
                         loginError.classList.remove('hidden');
                     }
                 })
@@ -510,18 +539,25 @@
                     console.error('Login error:', error);
                     loginError.textContent = 'Terjadi kesalahan. Silakan coba lagi.';
                     loginError.classList.remove('hidden');
+                })
+                .finally(() => {
+                    // Reset button state
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
                 });
             });
 
-            // Handle register form submission
+            // Enhanced register form handler
             registerForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
                 // Clear previous errors
                 const registerError = document.getElementById('registerError');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                
                 registerError.classList.add('hidden');
                 
-                // Get form values
+                // Get form values and validate
                 const name = document.getElementById('registerName').value.trim();
                 const email = document.getElementById('registerEmail').value.trim();
                 const phone = document.getElementById('registerPhone').value.trim();
@@ -529,20 +565,20 @@
                 const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
                 
                 // Client-side validation
-                if (!name) {
-                    registerError.textContent = 'Nama lengkap harus diisi.';
+                if (!name || name.length < 2) {
+                    registerError.textContent = 'Nama lengkap minimal 2 karakter.';
                     registerError.classList.remove('hidden');
                     return;
                 }
                 
                 if (!email || !isValidEmail(email)) {
-                    registerError.textContent = 'Email tidak valid.';
+                    registerError.textContent = 'Format email tidak valid.';
                     registerError.classList.remove('hidden');
                     return;
                 }
                 
-                if (!phone) {
-                    registerError.textContent = 'Nomor telepon harus diisi.';
+                if (!phone || phone.length < 10) {
+                    registerError.textContent = 'Nomor telepon minimal 10 karakter.';
                     registerError.classList.remove('hidden');
                     return;
                 }
@@ -569,7 +605,6 @@
                 formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
                 
                 // Show loading state
-                const submitBtn = this.querySelector('button[type="submit"]');
                 const originalText = submitBtn.textContent;
                 submitBtn.textContent = 'Mendaftar...';
                 submitBtn.disabled = true;
@@ -588,9 +623,15 @@
                         currentUserPhone = phone;
                         currentUserId = data.user_id;
                         document.getElementById('otpUserId').value = currentUserId;
+                        
+                        // Switch to OTP form
                         registerForm.classList.add('hidden');
                         otpForm.classList.remove('hidden');
-                        modalTitle.textContent = 'Verifikasi OTP';
+                        modalTitle.textContent = 'Verifikasi WhatsApp';
+                        
+                        // Show success message in OTP form
+                        showOtpSuccessMessage('Kode OTP telah dikirim ke WhatsApp Anda!');
+                        
                     } else {
                         // Display validation errors
                         if (data.errors) {
@@ -621,12 +662,7 @@
                 });
             });
 
-            function isValidEmail(email) {
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                return emailRegex.test(email);
-            }
-
-            // Handle OTP verification
+            // Enhanced OTP verification handler
             otpForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
@@ -637,7 +673,14 @@
                 });
                 
                 const otpError = document.getElementById('otpError');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                
                 otpError.classList.add('hidden');
+                
+                // Show loading state
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = 'Memverifikasi...';
+                submitBtn.disabled = true;
                 
                 fetch(baseUrl + '/ajax/verify-otp', {
                     method: 'POST',
@@ -654,7 +697,20 @@
                         // Redirect to checkout with booking data
                         window.location.href = data.redirect_url;
                     } else {
-                        otpError.textContent = data.message || 'Kode OTP salah. Silakan coba lagi.';
+                        // Display error message
+                        if (data.errors) {
+                            let errorMessages = [];
+                            Object.keys(data.errors).forEach(field => {
+                                if (Array.isArray(data.errors[field])) {
+                                    errorMessages.push(...data.errors[field]);
+                                } else {
+                                    errorMessages.push(data.errors[field]);
+                                }
+                            });
+                            otpError.innerHTML = errorMessages.join('<br>');
+                        } else {
+                            otpError.textContent = data.message || 'Kode OTP salah. Silakan coba lagi.';
+                        }
                         otpError.classList.remove('hidden');
                     }
                 })
@@ -662,11 +718,28 @@
                     console.error('OTP verification error:', error);
                     otpError.textContent = 'Terjadi kesalahan. Silakan coba lagi.';
                     otpError.classList.remove('hidden');
+                })
+                .finally(() => {
+                    // Reset button state
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
                 });
             });
 
-            // Handle resend OTP
+            // Enhanced resend OTP handler
             document.getElementById('resendOtp').addEventListener('click', function() {
+                if (!currentUserPhone) {
+                    alert('Nomor telepon tidak ditemukan. Silakan coba daftar ulang.');
+                    return;
+                }
+                
+                const btn = this;
+                const originalText = btn.textContent;
+                
+                // Show loading state
+                btn.textContent = 'Mengirim...';
+                btn.disabled = true;
+                
                 const formData = new FormData();
                 formData.append('phone', currentUserPhone);
                 formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
@@ -682,21 +755,85 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert('Kode OTP berhasil dikirim ulang!');
+                        showOtpSuccessMessage('Kode OTP berhasil dikirim ulang ke WhatsApp Anda!');
                     } else {
-                        alert('Gagal mengirim ulang OTP. Silakan coba lagi.');
+                        alert(data.message || 'Gagal mengirim ulang OTP. Silakan coba lagi.');
                     }
                 })
                 .catch(error => {
                     console.error('Resend OTP error:', error);
                     alert('Terjadi kesalahan. Silakan coba lagi.');
+                })
+                .finally(() => {
+                    // Reset button state after 3 seconds
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                    }, 3000);
                 });
             });
+
+            // New function to handle unverified user login
+            function triggerVerification(userId) {
+                const formData = new FormData();
+                formData.append('user_id', userId);
+                formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+                
+                fetch(baseUrl + '/ajax/trigger-verification', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show OTP form for verification
+                        document.getElementById('otpUserId').value = userId;
+                        loginForm.classList.add('hidden');
+                        otpForm.classList.remove('hidden');
+                        modalTitle.textContent = 'Verifikasi WhatsApp';
+                        
+                        showOtpSuccessMessage('Akun Anda belum diverifikasi. Kode OTP telah dikirim ke WhatsApp Anda.');
+                    } else {
+                        alert(data.message || 'Gagal mengirim kode verifikasi.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Trigger verification error:', error);
+                    alert('Terjadi kesalahan. Silakan coba lagi.');
+                });
+            }
+
+            // Helper function to show success message in OTP form
+            function showOtpSuccessMessage(message) {
+                // Create or update success message element
+                let successDiv = document.getElementById('otpSuccess');
+                if (!successDiv) {
+                    successDiv = document.createElement('div');
+                    successDiv.id = 'otpSuccess';
+                    successDiv.className = 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4';
+                    
+                    // Insert before OTP error div
+                    const otpError = document.getElementById('otpError');
+                    otpError.parentNode.insertBefore(successDiv, otpError);
+                }
+                
+                successDiv.textContent = message;
+                successDiv.classList.remove('hidden');
+                
+                // Hide after 5 seconds
+                setTimeout(() => {
+                    successDiv.classList.add('hidden');
+                }, 5000);
+            }
 
             // Redirect to checkout with booking data
             function redirectToCheckout() {
                 const params = new URLSearchParams(bookingData);
-                window.location.href = `{{ route('frontpage.checkout', $room->id) }}?${params.toString()}`;
+                window.location.href = `{{ route('frontpage.checkout', $room->id ?? 1) }}?${params.toString()}`;
             }
 
             // Reset all forms
@@ -711,10 +848,26 @@
                 document.getElementById('registerError').classList.add('hidden');
                 document.getElementById('otpError').classList.add('hidden');
                 
+                // Hide success message if exists
+                const successDiv = document.getElementById('otpSuccess');
+                if (successDiv) {
+                    successDiv.classList.add('hidden');
+                }
+                
                 // Reset form fields
                 loginForm.reset();
                 registerForm.reset();
                 otpForm.reset();
+                
+                // Clear stored data
+                currentUserPhone = '';
+                currentUserId = '';
+            }
+
+            // Email validation helper function
+            function isValidEmail(email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
             }
 
             // Set minimum date for date inputs
@@ -741,6 +894,32 @@
                         this.value = '';
                     }
                 });
+            }
+
+            // Handle escape key to close modal
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && !authModal.classList.contains('hidden')) {
+                    authModal.classList.add('hidden');
+                    resetForms();
+                }
+            });
+
+            // Auto-focus on OTP input when OTP form is shown
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        const target = mutation.target;
+                        if (target.id === 'otpForm' && !target.classList.contains('hidden')) {
+                            setTimeout(() => {
+                                document.getElementById('otpCode').focus();
+                            }, 100);
+                        }
+                    }
+                });
+            });
+
+            if (otpForm) {
+                observer.observe(otpForm, { attributes: true });
             }
         });
     </script>

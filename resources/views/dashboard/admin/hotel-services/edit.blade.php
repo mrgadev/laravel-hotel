@@ -37,7 +37,7 @@
         <section class="container px-6 mx-auto">
             <main class="col-span-12 md:pt-0">
                 <div class="p-2 mt-2 bg-white rounded-xl shadow-lg">
-                    <form action="{{route('dashboard.hotel-services.update', $hotel_facility)}}" method="POST" enctype="multipart/form-data">
+                    <form action="{{route('dashboard.hotel-services.update', $layanan_hotel)}}" method="POST" enctype="multipart/form-data">
                         @method('PUT')
                         @csrf
                         <div class="">
@@ -46,7 +46,7 @@
                                     <div class="grid grid-cols-1 gap-10 sm:grid-cols-2">
                                         <div>
                                             <label for="name" class="block mb-3 font-medium text-gray-700 text-md">Nama Fasilitas Hotel</label>
-                                            <input type="text" name="name" id="name" value="{{$hotel_facility->name}}" autocomplete="off" class="block w-full py-3 mt-1 border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                                            <input type="text" name="name" id="name" value="{{$layanan_hotel->name}}" autocomplete="off" class="block w-full py-3 mt-1 border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
 
                                             @if ($errors->has('name'))
                                                 <p class="text-red-500 mb-3 text-sm">{{$errors->first('name')}}</p>
@@ -67,7 +67,7 @@
                                     <div class="grid grid-cols-1 mt-5 items-center">
                                         <div>
                                             <label for="description" class="block mb-3 font-medium text-gray-700 text-md">Deskripsi Fasilitas Hotel</label>
-                                            <textarea name="description" id="description" rows="10" cols="80">{!! $hotel_facility->description !!}</textarea>
+                                            <textarea name="description" id="description" rows="10" cols="80">{!! $layanan_hotel->description !!}</textarea>
 
                                             @error('description')
                                                 <span class="text-red-500 text-sm">{{ $message }}</span>
@@ -97,7 +97,7 @@
             <div>
                 <img
                     class="w-full max-h-[80vh] object-contain"
-                    src="{{Storage::url($hotel_facility->icon)}}"
+                    src="{{Storage::url($layanan_hotel->icon)}}"
                 />
             </div>
         </div>

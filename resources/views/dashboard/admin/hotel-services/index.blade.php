@@ -83,23 +83,23 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($hotel_services as $key => $hotel_service)
+                                @forelse ($layanan_hotels as $key => $layanan_hotel)
                                     <tr class="cursor-pointer">
                                         <td scope="row" class="px-4 pe-0 py-4 font-medium text-gray-900 whitespace-nowrap">
-                                            <input type="checkbox" name="hotel_services_ids[]" class="cursor-pointer child-checkbox w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600" value="{{ $hotel_service->id }}">
+                                            <input type="checkbox" name="layanan_hotels_ids[]" class="cursor-pointer child-checkbox w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600" value="{{ $layanan_hotel->id }}">
                                         </td>
                                         <td class="font-medium text-gray-900 whitespace-nowrap">{{$key+1}}</td>
                                         <td class="">
-                                            <span class="material-icons-round">{{$hotel_service->icon}}</span>
+                                            <span class="material-icons-round">{{$layanan_hotel->icon}}</span>
                                         </td>
-                                        <td class="font-medium text-gray-900 whitespace-nowrap">{{$hotel_service->name}}</td>
+                                        <td class="font-medium text-gray-900 whitespace-nowrap">{{$layanan_hotel->name}}</td>
                                         <td class="flex items-center">
                                             <div class="mr-2">
-                                                <a href="{{route('dashboard.hotel_service.edit', $hotel_service)}}" class="py-2 px-2 border-2 rounded-md border-primary-600 text-primary-500 text-center transition-all hover:bg-primary-500 hover:text-white">
+                                                <a href="{{route('dashboard.hotel-services.edit', $layanan_hotel->id)}}" class="py-2 px-2 border-2 rounded-md border-primary-600 text-primary-500 text-center transition-all hover:bg-primary-500 hover:text-white">
                                                     <i class="bi bi-pencil-square"></i>
                                                 </a>
                                             </div>
-                                            <form action="{{route('dashboard.hotel_service.destroy', $hotel_service)}}" class="" method="POST">
+                                            <form action="{{route('dashboard.hotel-services.destroy', $layanan_hotel->id)}}" class="" method="POST">
                                                 @method('DELETE')
                                                 @csrf
                                                 <button tyoe="submit" class="py-1 px-2 border-2 rounded-md border-red-600 text-red-600 text-center transition-all hover:bg-red-600 hover:text-white">
@@ -240,7 +240,7 @@
             const actionUrl = "{{ route('dashboard.hotel-services.bulkDelete') }}";
 
             deleteButton.addEventListener('click', function () {
-                const hotelServicesIds = Array.from(document.querySelectorAll('input[name="hotel_services_ids[]"]:checked'))
+                const hotelServicesIds = Array.from(document.querySelectorAll('input[name="layanan_hotels_ids[]"]:checked'))
                     .map(checkbox => checkbox.value);
 
                 if (hotelServicesIds.length === 0) {
@@ -265,7 +265,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrfToken
                     },
-                    body: JSON.stringify({ hotel_services_ids: hotelServicesIds })
+                    body: JSON.stringify({ layanan_hotels_ids: hotelServicesIds })
                 })
                 .then(response => response.json())
                 .then(data => {

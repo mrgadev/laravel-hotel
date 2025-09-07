@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Saldo;
+use App\Traits\Fonnte;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -14,6 +16,8 @@ use Exception;
 
 class AjaxAuthController extends Controller
 {
+    use Fonnte; // Add the Fonnte trait
+
     /**
      * Handle AJAX login request
      */
@@ -39,6 +43,19 @@ class AjaxAuthController extends Controller
             }
 
             $credentials = $request->only('phone', 'password');
+
+            // Check if user exists and is verified
+            $user = User::where('phone', $credentials['phone'])->first();
+            
+            if ($user && $user->access === 'no') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun Anda belum diverifikasi. Silakan verifikasi terlebih dahulu.',
+                    'need_verification' => true,
+                    'user_id' => $user->id,
+                    'phone' => $user->phone
+                ], 401);
+            }
 
             if (Auth::attempt($credentials)) {
                 $request->session()->regenerate();
@@ -110,25 +127,41 @@ class AjaxAuthController extends Controller
             }
 
             // Generate OTP
-            $otp = rand(100000, 999999);
+            $otp = rand(111111, 999999);
             
             $user = User::create([
                 'name' => trim($request->name),
                 'email' => trim(strtolower($request->email)),
                 'phone' => trim($request->phone),
+                'avatar' => 'storage/default/user.png',
                 'password' => Hash::make($request->password),
                 'otp' => $otp,
+                'access' => 'no', // Set access to 'no' initially
                 'phone_verified_at' => null,
+            ]);
+
+            // Assign user role
+            $user->assignRole('user');
+
+            // Create initial saldo record
+            Saldo::create([
+                'user_id' => $user->id,
+                'credit' => 0,
+                'debit' => 0,
+                'amount' => 0,
+                'description' => 'Saldo Awal',
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             Log::info('User created successfully:', ['user_id' => $user->id, 'phone' => $user->phone]);
 
-            // Send OTP via SMS
-            $this->sendOTP($request->phone, $otp);
+            // Send OTP via WhatsApp using Fonnte
+            $this->sendOTP($request->phone, $otp, $user->name);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Registrasi berhasil! Kode OTP telah dikirim ke nomor telepon Anda.',
+                'message' => 'Registrasi berhasil! Kode OTP telah dikirim ke WhatsApp Anda.',
                 'user_id' => $user->id
             ]);
 
@@ -177,10 +210,19 @@ class AjaxAuthController extends Controller
                 ], 400);
             }
 
+            // Check if user is already verified
+            if ($user->access === 'yes') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun sudah diverifikasi sebelumnya!'
+                ], 422);
+            }
+
             // Verify user and clear OTP
             $user->update([
                 'phone_verified_at' => now(),
-                'otp' => null
+                'otp' => null,
+                'access' => 'yes' // Update access status
             ]);
 
             // Login the user
@@ -237,15 +279,15 @@ class AjaxAuthController extends Controller
             }
 
             // Generate new OTP
-            $otp = rand(100000, 999999);
+            $otp = rand(111111, 999999);
             $user->update(['otp' => $otp]);
 
-            // Send OTP via SMS
-            $this->sendOTP($request->phone, $otp);
+            // Send OTP via WhatsApp using Fonnte
+            $this->sendOTP($request->phone, $otp, $user->name);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Kode OTP baru telah dikirim.'
+                'message' => 'Kode OTP baru telah dikirim ke WhatsApp Anda.'
             ]);
 
         } catch (Exception $e) {
@@ -279,16 +321,93 @@ class AjaxAuthController extends Controller
     }
 
     /**
-     * Send OTP via SMS
+     * Send OTP via WhatsApp using Fonnte
      */
-    private function sendOTP($phone, $otp)
+    private function sendOTP($phone, $otp, $name = null)
     {
-        // Log OTP for development
-        Log::info("OTP for {$phone}: {$otp}");
-        
-        // TODO: Implement SMS service integration
-        // Example: Twilio, Nexmo, or local SMS gateway
-        
-        return true; // Return success for now
+        try {
+            // Format the message similar to RegisteredUserController
+            $message = "Halo " . ($name ?: 'Customer') . "\n\n";
+            $message .= "Silahkan masukkan kode OTP untuk melanjutkan proses verifikasi:\n\n";
+            $message .= "*" . $otp . "*\n\n";
+            $message .= "Kode ini berlaku selama 10 menit.\n";
+            $message .= "Jangan berikan kode ini kepada siapapun.";
+
+            // Send message using Fonnte trait
+            $response = $this->send_message($phone, $message);
+
+            // Log the response for debugging
+            Log::info("OTP sent via Fonnte to {$phone}:", [
+                'otp' => $otp,
+                'response' => $response
+            ]);
+
+            return true;
+
+        } catch (Exception $e) {
+            // Log error but don't fail the registration process
+            Log::error("Failed to send OTP via Fonnte: " . $e->getMessage());
+            
+            // Fallback: Log OTP for development
+            Log::info("OTP fallback for {$phone}: {$otp}");
+            
+            return false;
+        }
+    }
+
+    /**
+     * Handle unverified user login attempt - trigger OTP resend
+     */
+    public function triggerVerification(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'user_id' => ['required', 'exists:users,id'],
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data tidak valid.',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $user = User::find($request->user_id);
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User tidak ditemukan.'
+                ], 404);
+            }
+
+            if ($user->access === 'yes') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun sudah diverifikasi.'
+                ], 422);
+            }
+
+            // Generate new OTP
+            $otp = rand(111111, 999999);
+            $user->update(['otp' => $otp]);
+
+            // Send OTP via WhatsApp
+            $this->sendOTP($user->phone, $otp, $user->name);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Kode OTP telah dikirim ke WhatsApp Anda.',
+                'user_id' => $user->id
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Trigger verification error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan. Silahkan coba lagi.'
+            ], 500);
+        }
     }
 }
