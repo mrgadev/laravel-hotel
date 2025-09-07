@@ -52,7 +52,7 @@
     }
 
     header {
-        background: url('https://images.unsplash.com/photo-1568605114967-8130f3a36994?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+        background: url('https://unsinnsolo.co.id/wp-content/uploads/2024/12/Resto1_11zon-scaled.jpg');
         background-size: cover;
         //background: url({{ $frontpage_site_setting && $frontpage_site_setting->hero_cover ? url($frontpage_site_setting->hero_cover) : '' }});
     }
