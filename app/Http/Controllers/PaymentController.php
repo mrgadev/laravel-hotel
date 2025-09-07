@@ -1617,7 +1617,7 @@ class PaymentController extends Controller
         do {
             $timestamp = date('ymd'); // Format: 241207 untuk 2024-12-07
             $random = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-            $invoice = 'MH-' . $timestamp . '-' . $random;
+            $invoice = 'INN-' . $timestamp . '-' . $random;
             
             // Check if invoice already exists
             $exists = Transaction::where('invoice', $invoice)->exists();

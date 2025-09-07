@@ -42,7 +42,7 @@
                         {{-- Header card --}}
                         <div class="flex flex-col gap-3 mb-8">
                             <p class="p-2 rounded-lg bg-green-100 border border-green-700 text-green-700 text-xs w-fit font-medium">Pesanan dikonfirmasi</p>
-                            <h2 class="font-light text-primary-700 text-xl">Booking ID: <span class="font-medium">MH-37289</span></h2>
+                            <h2 class="font-light text-primary-700 text-xl">Booking ID: <span class="font-medium">INN-37289</span></h2>
                             <p class="flex items-center text-sm gap-1"><span class="material-symbols-rounded">schedule</span> 17 November 2024, 09:56</p>
                         </div>
 
