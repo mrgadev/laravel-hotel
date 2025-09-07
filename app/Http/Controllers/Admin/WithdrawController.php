@@ -42,7 +42,7 @@ class WithdrawController extends Controller
         $data = $request->validate([
             'amount' => 'required',
             'notes' => 'required',
-            'nomor_rekening' => 'required',
+            'bank_number' => 'required',
             'bank_id' => 'required',
         ]);
 
@@ -50,7 +50,7 @@ class WithdrawController extends Controller
 
         $user->update([
             'bank_id' => $data['bank_id'],
-            'nomor_rekening' => $data['nomor_rekening'],
+            'bank_number' => $data['bank_number'],
         ]);
 
         $withdraw = Withdraw::create([

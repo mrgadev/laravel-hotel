@@ -79,11 +79,11 @@
                             </div>
 
                             <div>
-                                <label for="nomor_rekening" class="block mb-3 font-medium text-gray-700 text-md">Nomor Rekening</label>
-                                <input placeholder="Nomor Rekening" type="number" name="nomor_rekening" id="nomor_rekening" autocomplete="off" 
+                                <label for="bank_number" class="block mb-3 font-medium text-gray-700 text-md">Nomor Rekening</label>
+                                <input placeholder="Nomor Rekening" type="number" name="bank_number" id="bank_number" autocomplete="off" 
                                     class="block w-full py-3 mt-1 border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm" 
-                                    value="{{$user->nomor_rekening}}">
-                                @error('nomor_rekening')
+                                    value="{{$user->bank_number}}">
+                                @error('bank_number')
                                     <p class="text-red-500 text-sm mt-1">{{$message}}</p>
                                 @enderror
                             </div>

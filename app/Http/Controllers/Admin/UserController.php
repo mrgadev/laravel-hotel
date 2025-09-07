@@ -101,7 +101,7 @@ class UserController extends Controller
             'phone' => 'required',
             'email' => 'required|email',
             'bank_id' => 'required',
-            'nomor_rekening' => 'required'
+            'bank_number' => 'required'
         ]);
 
         $user = User::find($id);

@@ -49,7 +49,7 @@ class DashboardController extends Controller
             'id_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'regency_id' => 'nullable|exists:regencies,id',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'nomor_rekening' => 'nullable',
+            'bank_number' => 'nullable',
             'bank_id' => 'nullable',
         ]);
 

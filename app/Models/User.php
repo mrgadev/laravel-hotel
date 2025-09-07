@@ -31,7 +31,7 @@ class User extends Authenticatable
         'id_number',
         'id_photo',
         'bank_id',
-        'nomor_rekening',
+        'bank_number',
         'role'
     ];
 
