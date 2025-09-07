@@ -919,7 +919,8 @@ class PaymentController extends Controller
             $checkIn = $this->formatDateTimeForUser($transaction->check_in, 'l, d M Y');
             $checkOut = $this->formatDateTimeForUser($transaction->check_out, 'l, d M Y');
             $paymentDeadline = $this->formatDateTimeForUser($transaction->payment_deadline, 'd M Y H:i');
-            
+            $paymentUrl = $transaction->payment_url;
+
             $message = "🏨 *KONFIRMASI PEMESANAN - UNS INN* 🏨\n\n";
             $message .= "Halo {$transaction->name}!\n";
             $message .= "Terima kasih telah melakukan pemesanan kamar di UNS Inn.\n\n";
@@ -933,6 +934,7 @@ class PaymentController extends Controller
             $message .= "⏰ *Batas Waktu Pembayaran:*\n";
             $message .= "{$paymentDeadline} WIB\n\n";
             $message .= "💳 Silakan lakukan pembayaran melalui link yang telah dikirimkan.\n\n";
+            $message .= "{$paymentUrl}\n\n";
             $message .= "Jika ada pertanyaan, jangan ragu untuk menghubungi kami.\n";
             $message .= "Terima kasih! 😊";
 
@@ -1546,31 +1548,68 @@ class PaymentController extends Controller
 
     private function isRoomAvailableForDates($roomId, $checkIn, $checkOut)
     {
-        // Cek apakah ada booking yang overlap dengan tanggal yang diminta
+        // Ambil data room untuk mendapatkan total_rooms
+        $room = Room::find($roomId);
+        if (!$room) {
+            return false;
+        }
+        
+        // Hitung berapa kamar yang sudah dibooking untuk periode yang overlap
         $overlappingBookings = Transaction::where('room_id', $roomId)
-            ->where('payment_status', '!=', 'CANCELLED')
+            ->where('payment_status', '!=', 'CANCELLED') // Exclude cancelled bookings
             ->where(function ($query) use ($checkIn, $checkOut) {
                 $query->where(function ($q) use ($checkIn, $checkOut) {
                     // Case 1: Booking existing dimulai di antara tanggal yang diminta
-                    $q->whereBetween('check_in', [$checkIn, $checkOut]);
+                    $q->where('check_in', '>=', $checkIn)
+                    ->where('check_in', '<', $checkOut);
                 })->orWhere(function ($q) use ($checkIn, $checkOut) {
-                    // Case 2: Booking existing berakhir di antara tanggal yang diminta
-                    $q->whereBetween('check_out', [$checkIn, $checkOut]);
+                    // Case 2: Booking existing berakhir di antara tanggal yang diminta  
+                    $q->where('check_out', '>', $checkIn)
+                    ->where('check_out', '<=', $checkOut);
                 })->orWhere(function ($q) use ($checkIn, $checkOut) {
                     // Case 3: Booking existing mencakup seluruh periode yang diminta
                     $q->where('check_in', '<=', $checkIn)
-                      ->where('check_out', '>=', $checkOut);
+                    ->where('check_out', '>=', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    // Case 4: Periode yang diminta mencakup seluruh booking existing
+                    $q->where('check_in', '>=', $checkIn)
+                    ->where('check_out', '<=', $checkOut);
                 });
             })
             ->count();
 
-        if ($overlappingBookings > 0) {
-            return false;
-        }
+        // Bandingkan dengan total kamar yang tersedia
+        // Jika booking yang overlap kurang dari total kamar, berarti masih tersedia
+        return $overlappingBookings < $room->total_rooms;
+    }
 
-        // Cek available rooms
+    private function getAvailableRoomsCount($roomId, $checkIn, $checkOut)
+    {
         $room = Room::find($roomId);
-        return $room && $room->available_rooms > 0;
+        if (!$room) {
+            return 0;
+        }
+        
+        $overlappingBookings = Transaction::where('room_id', $roomId)
+            ->where('payment_status', '!=', 'CANCELLED')
+            ->where(function ($query) use ($checkIn, $checkOut) {
+                $query->where(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_in', '>=', $checkIn)
+                    ->where('check_in', '<', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_out', '>', $checkIn)
+                    ->where('check_out', '<=', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_in', '<=', $checkIn)
+                    ->where('check_out', '>=', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_in', '>=', $checkIn)
+                    ->where('check_out', '<=', $checkOut);
+                });
+            })
+            ->count();
+
+        return $room->total_rooms - $overlappingBookings;
     }
 
     private function generateUniqueInvoice()
@@ -1594,13 +1633,22 @@ class PaymentController extends Controller
             return null;
         }
 
-        // Get all occupied room numbers for the date range
+        // Get all occupied room numbers for the overlapping date range
         $occupiedRoomNumbers = Transaction::where('room_id', $roomId)
             ->where('payment_status', '!=', 'CANCELLED')
             ->where(function ($query) use ($checkIn, $checkOut) {
                 $query->where(function ($q) use ($checkIn, $checkOut) {
-                    $q->where('check_in', '<', $checkOut)
-                      ->where('check_out', '>', $checkIn);
+                    $q->where('check_in', '>=', $checkIn)
+                    ->where('check_in', '<', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_out', '>', $checkIn)
+                    ->where('check_out', '<=', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_in', '<=', $checkIn)
+                    ->where('check_out', '>=', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_in', '>=', $checkIn)
+                    ->where('check_out', '<=', $checkOut);
                 });
             })
             ->whereNotNull('room_number')
@@ -1614,7 +1662,7 @@ class PaymentController extends Controller
             }
         }
 
-        // If no room number available, return null (shouldn't happen if availability check is correct)
+        // If no room number available, return null
         return null;
     }
 

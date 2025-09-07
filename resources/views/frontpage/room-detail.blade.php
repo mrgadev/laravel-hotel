@@ -162,7 +162,7 @@
         @endif
 
         @if($room)
-            {{-- Modified reservation form to handle authentication check --}}
+            {{-- Modified reservation form to handle authentication check with improved UX --}}
             <form action="#" class="hidden mt-5 py-3 ps-10 w-fit pe-3 lg:flex items-center gap-8 bg-primary-100 border border-primary-700 text-primary-700 rounded-full" method="GET" id="reservationForm">
                 <div class="flex items-center gap-3">
                     <div class="grid grid-cols-1 gap-2">
@@ -174,12 +174,12 @@
                         <input type="date" name="check_out" id="checkOut" value="{{ session('check_out') }}" class="outline-none border-none bg-transparent text-lg p-0">
                     </div>
                 </div>
-                <button type="button" id="bookingBtn" class="text-white bg-primary-500 w-fit px-5 py-3 rounded-full">
+                <button type="button" id="bookingBtn" class="text-white bg-primary-500 w-fit px-5 py-3 rounded-full hover:bg-primary-600 transition-colors">
                     Pesan
                 </button>
             </form>
             {{-- Modified mobile booking button to handle authentication check --}}
-            <button id="mobileBookingBtn" class="lg:hidden text-white bg-primary-500 w-fit px-5 py-3 rounded-full">Pesan sekarang</button>
+            <button id="mobileBookingBtn" class="lg:hidden text-white bg-primary-500 w-fit px-5 py-3 rounded-full hover:bg-primary-600 transition-colors">Pesan sekarang</button>
         @else
             <p class="text-gray-500">Kamar tidak tersedia</p>
         @endif
@@ -388,65 +388,7 @@
         })
     </script>
 
-
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const checkInInput = document.getElementById('checkIn');
-            const checkOutInput = document.getElementById('checkOut');
-            const reservationForm = document.getElementById('reservationForm');
-
-            // Set minimum date for check-in to today
-            const today = new Date().toISOString().split('T')[0];
-            checkInInput.setAttribute('min', today);
-
-            // Enable check-out input and set its min date when check-in is selected
-            checkInInput.addEventListener('change', function() {
-                // Enable check-out input
-                checkOutInput.disabled = false;
-                checkOutInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
-                checkOutInput.classList.add('bg-white', 'cursor-default');
-
-                // Set minimum date for check-out to the selected check-in date
-                checkOutInput.setAttribute('min', this.value);
-
-                // Reset check-out input
-                checkOutInput.value = '';
-            });
-
-            // Ensure check-out is after check-in
-            checkOutInput.addEventListener('change', function() {
-                if (new Date(this.value) <= new Date(checkInInput.value)) {
-                    alert('Tanggal checkout harus setelah tanggal checkin!');
-                    this.value = '';
-                }
-            });
-
-            // Form submission handler
-            // reservationForm.addEventListener('submit', function(e) {
-            //     e.preventDefault();
-
-            //     const checkInDate = checkInInput.value;
-            //     const checkOutDate = checkOutInput.value;
-
-            //     // Basic validation
-            //     if (!checkInDate || !checkOutDate) {
-            //         alert('Tolong pilih tanggal checkin dan checkout!');
-            //         return;
-            //     }
-
-            //     // You can add more validation or send data to server here
-            //     console.log('Reservation Details:', {
-            //         checkIn: checkInDate,
-            //         checkOut: checkOutDate
-            //     });
-
-            //     alert('Berhasil reservasi kamar!');
-            // });
-        });
-    </script>
-
-    <script>
-        // Authentication and booking functionality
         document.addEventListener('DOMContentLoaded', function() {
             const authModal = document.getElementById('authModal');
             const closeAuthModal = document.getElementById('closeAuthModal');
@@ -460,10 +402,14 @@
             const modalTitle = document.getElementById('modalTitle');
 
             let currentUserPhone = '';
+            let currentUserId = '';
             let bookingData = {};
 
             // Check if user is authenticated
             const isAuthenticated = {{ auth()->check() ? 'true' : 'false' }};
+
+            // Get current protocol and host for AJAX requests
+            const baseUrl = window.location.protocol + '//' + window.location.host;
 
             // Handle booking button clicks
             function handleBooking() {
@@ -523,46 +469,57 @@
 
             showLogin.addEventListener('click', function() {
                 registerForm.classList.add('hidden');
+                otpForm.classList.add('hidden');
                 loginForm.classList.remove('hidden');
                 modalTitle.textContent = 'Masuk ke Akun Anda';
             });
 
             // Handle login form submission
-            document.getElementById('loginFormSubmit').addEventListener('submit', function(e) {
+            loginForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
                 const formData = new FormData(this);
-                const loginError = document.getElementById('loginError');
+                // Add booking data to login request
+                Object.keys(bookingData).forEach(key => {
+                    formData.append(key, bookingData[key]);
+                });
                 
-                fetch('{{ route("login") }}', {
+                const loginError = document.getElementById('loginError');
+                loginError.classList.add('hidden');
+                
+                fetch(baseUrl + '/ajax/login', {
                     method: 'POST',
                     body: formData,
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     }
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         authModal.classList.add('hidden');
-                        redirectToCheckout();
+                        // Redirect to checkout with booking data
+                        window.location.href = data.redirect_url;
                     } else {
                         loginError.textContent = data.message || 'Login gagal. Silakan coba lagi.';
                         loginError.classList.remove('hidden');
                     }
                 })
                 .catch(error => {
+                    console.error('Login error:', error);
                     loginError.textContent = 'Terjadi kesalahan. Silakan coba lagi.';
                     loginError.classList.remove('hidden');
                 });
             });
 
             // Handle register form submission
-            document.getElementById('registerFormSubmit').addEventListener('submit', function(e) {
+            registerForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
                 const formData = new FormData(this);
                 const registerError = document.getElementById('registerError');
+                registerError.classList.add('hidden');
                 
                 // Validate password confirmation
                 const password = document.getElementById('registerPassword').value;
@@ -574,17 +531,20 @@
                     return;
                 }
                 
-                fetch('{{ route("register") }}', {
+                fetch(baseUrl + '/ajax/register', {
                     method: 'POST',
                     body: formData,
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     }
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         currentUserPhone = formData.get('phone');
+                        currentUserId = data.user_id;
+                        document.getElementById('otpUserId').value = currentUserId;
                         registerForm.classList.add('hidden');
                         otpForm.classList.remove('hidden');
                         modalTitle.textContent = 'Verifikasi OTP';
@@ -594,36 +554,46 @@
                     }
                 })
                 .catch(error => {
+                    console.error('Register error:', error);
                     registerError.textContent = 'Terjadi kesalahan. Silakan coba lagi.';
                     registerError.classList.remove('hidden');
                 });
             });
 
             // Handle OTP verification
-            document.getElementById('otpFormSubmit').addEventListener('submit', function(e) {
+            otpForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
                 const formData = new FormData(this);
-                const otpError = document.getElementById('otpError');
+                // Add booking data to OTP verification request
+                Object.keys(bookingData).forEach(key => {
+                    formData.append(key, bookingData[key]);
+                });
                 
-                fetch('{{ route("verify.process") }}', {
+                const otpError = document.getElementById('otpError');
+                otpError.classList.add('hidden');
+                
+                fetch(baseUrl + '/ajax/verify-otp', {
                     method: 'POST',
                     body: formData,
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     }
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         authModal.classList.add('hidden');
-                        redirectToCheckout();
+                        // Redirect to checkout with booking data
+                        window.location.href = data.redirect_url;
                     } else {
                         otpError.textContent = data.message || 'Kode OTP salah. Silakan coba lagi.';
                         otpError.classList.remove('hidden');
                     }
                 })
                 .catch(error => {
+                    console.error('OTP verification error:', error);
                     otpError.textContent = 'Terjadi kesalahan. Silakan coba lagi.';
                     otpError.classList.remove('hidden');
                 });
@@ -635,18 +605,25 @@
                 formData.append('phone', currentUserPhone);
                 formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
                 
-                fetch('{{ route("resend") }}', {
+                fetch(baseUrl + '/ajax/resend-otp', {
                     method: 'POST',
                     body: formData,
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     }
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         alert('Kode OTP berhasil dikirim ulang!');
+                    } else {
+                        alert('Gagal mengirim ulang OTP. Silakan coba lagi.');
                     }
+                })
+                .catch(error => {
+                    console.error('Resend OTP error:', error);
+                    alert('Terjadi kesalahan. Silakan coba lagi.');
                 });
             });
 
@@ -669,75 +646,36 @@
                 document.getElementById('otpError').classList.add('hidden');
                 
                 // Reset form fields
-                document.getElementById('loginFormSubmit').reset();
-                document.getElementById('registerFormSubmit').reset();
-                document.getElementById('otpFormSubmit').reset();
+                loginForm.reset();
+                registerForm.reset();
+                otpForm.reset();
+            }
+
+            // Set minimum date for date inputs
+            const today = new Date().toISOString().split('T')[0];
+            const checkInInput = document.getElementById('checkIn');
+            const checkOutInput = document.getElementById('checkOut');
+            
+            if (checkInInput) {
+                checkInInput.setAttribute('min', today);
+                checkInInput.addEventListener('change', function() {
+                    const checkInDate = new Date(this.value);
+                    checkInDate.setDate(checkInDate.getDate() + 1);
+                    if (checkOutInput) {
+                        checkOutInput.setAttribute('min', checkInDate.toISOString().split('T')[0]);
+                    }
+                });
+            }
+            
+            if (checkOutInput) {
+                checkOutInput.setAttribute('min', today);
+                checkOutInput.addEventListener('change', function() {
+                    if (checkInInput && new Date(this.value) <= new Date(checkInInput.value)) {
+                        alert('Tanggal checkout harus setelah tanggal checkin!');
+                        this.value = '';
+                    }
+                });
             }
         });
-
-        document.addEventListener('DOMContentLoaded', function() {
-        const guestBookingBtn = document.getElementById('guestBookingBtn');
-        const guestCheckIn = document.getElementById('guestCheckIn');
-        const guestCheckOut = document.getElementById('guestCheckOut');
-
-        if (guestBookingBtn) {
-            guestBookingBtn.addEventListener('click', function() {
-                const checkInDate = guestCheckIn.value;
-                const checkOutDate = guestCheckOut.value;
-
-                if (!checkInDate || !checkOutDate) {
-                    alert('Silahkan pilih tanggal check-in dan check-out terlebih dahulu.');
-                    return;
-                }
-
-                if (new Date(checkInDate) >= new Date(checkOutDate)) {
-                    alert('Tanggal check-out harus setelah tanggal check-in.');
-                    return;
-                }
-
-                // Store dates in session storage for later use
-                sessionStorage.setItem('check_in', checkInDate);
-                sessionStorage.setItem('check_out', checkOutDate);
-                sessionStorage.setItem('room_id', '{{ $room->id }}');
-
-                // Create checkout URL with room ID and dates
-                const checkoutUrl = `{{ route('frontpage.checkout', $room->id) }}?check_in=${checkInDate}&check_out=${checkOutDate}`;
-                
-                // Show auth modal with redirect URL
-                showAuthModal(checkoutUrl);
-            });
-        }
-
-        // Set minimum date to today
-        const today = new Date().toISOString().split('T')[0];
-        if (guestCheckIn) guestCheckIn.min = today;
-        if (guestCheckOut) guestCheckOut.min = today;
-
-        // Update checkout min date when checkin changes
-        if (guestCheckIn && guestCheckOut) {
-            guestCheckIn.addEventListener('change', function() {
-                const checkInDate = new Date(this.value);
-                checkInDate.setDate(checkInDate.getDate() + 1);
-                guestCheckOut.min = checkInDate.toISOString().split('T')[0];
-            });
-        }
-
-        @auth
-        // For authenticated users, set minimum dates
-        const checkIn = document.getElementById('check_in');
-        const checkOut = document.getElementById('check_out');
-        
-        if (checkIn) checkIn.min = today;
-        if (checkOut) checkOut.min = today;
-
-        if (checkIn && checkOut) {
-            checkIn.addEventListener('change', function() {
-                const checkInDate = new Date(this.value);
-                checkInDate.setDate(checkInDate.getDate() + 1);
-                checkOut.min = checkInDate.toISOString().split('T')[0];
-            });
-        }
-        @endauth
-    });
     </script>
 @endpush

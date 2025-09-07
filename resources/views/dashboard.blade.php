@@ -181,8 +181,8 @@
                     <div class="py-4 px-6 pb-0 mb-0 rounded-t-4">
                         <div class="flex justify-between items-center">
                             <h6 class="font-medium text-lg text-primary-700">Reservasi Terbaru</h6>
-                            <a href="#" class="flex items-center px-5 py-2 border-2 rounded-md bg-primary-100 p-2 text-primary-700  transition-all duration-75 hover:text-[#976033] border border-primary-700 text-base text-center">
-                            {{-- <a href="{{ route('dashboard.transaction.index') }}" class="flex items-center px-5 py-2 border-2 rounded-md bg-primary-100 p-2 text-primary-700  transition-all duration-75 hover:text-[#976033] border border-primary-700 text-base text-center"> --}}
+                            {{-- <a href="#" class="flex items-center px-5 py-2 border-2 rounded-md bg-primary-100 p-2 text-primary-700  transition-all duration-75 hover:text-[#976033] border border-primary-700 text-base text-center"> --}}
+                            <a href="{{ route('dashboard.transaction.index') }}" class="flex items-center px-5 py-2 border-2 rounded-md bg-primary-100 p-2 text-primary-700  transition-all duration-75 hover:text-[#976033] border border-primary-700 text-base text-center">
                                 <p>Lihat selengkapnya</p>
                             </a>
                         </div>

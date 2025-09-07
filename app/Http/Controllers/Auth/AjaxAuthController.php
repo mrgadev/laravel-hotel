@@ -221,4 +221,6 @@ class AjaxAuthController extends Controller
         // TODO: Implement SMS service integration
         // Example: Twilio, Nexmo, or local SMS gateway
     }
+
+    
 }
