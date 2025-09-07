@@ -514,7 +514,7 @@
         data: {
             labels: ['Kamar Terpesan', 'Kamar Tersedia'],
             datasets: [{
-                data: [{{ $bookedRooms }}, {{ $availableRooms }}],
+                data: [{{ $bookedRooms ?? 0 }}, {{ $availableRooms ?? 0}}],
                 backgroundColor: [
                     '#FF8042', // Warna untuk kamar terpesan
                     '#00C49F'  // Warna untuk kamar tersedia
