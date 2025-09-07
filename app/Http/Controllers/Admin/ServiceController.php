@@ -7,6 +7,7 @@ use App\Models\Service;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\ServiceCategory;
+use Illuminate\Support\Facades\Storage;
 
 class ServiceController extends Controller
 {
@@ -44,6 +45,7 @@ class ServiceController extends Controller
             'cover.mimes' => 'Format gambar sampul tidak valid',
             'price.required' => 'Harga wajib diisi'
         ];
+        
         $data = $request->validate([
             'name' => 'required',
             'description' => 'required',
@@ -54,28 +56,29 @@ class ServiceController extends Controller
             'price' => 'required',
         ], $message);
 
+        // Handle multiple images
         $imagePaths = [];
         if($request->hasFile('image')){
             foreach ($request->file('image') as $key => $image) {
-                $image_name = 'LAYANAN-'.$key.'-'.Str::slug($request->name).rand(000,999);
+                $image_name = 'LAYANAN-'.$key.'-'.Str::slug($request->name).'-'.rand(1000,9999);
                 $ext = strtolower($image->getClientOriginalExtension());
                 $image_full_name = $image_name.'.'.$ext;
-                $upload_path ='storage/services/';
-                $image_url = $upload_path.$image_full_name;
-                $image->move($upload_path, $image_full_name);
-                $imagePaths[] = $image_url;
+                
+                // Store using Laravel Storage
+                $imagePath = $image->storeAs('services', $image_full_name, 'public');
+                $imagePaths[] = $imagePath;
             }
         }
 
+        // Handle cover image
+        $coverPath = null;
         if($request->file('cover')) {
-            $cover_name = 'SAMPUL-LAYANAN-'.Str::slug($request->name).rand(000,999);
+            $cover_name = 'SAMPUL-LAYANAN-'.Str::slug($request->name).'-'.rand(1000,9999);
             $ext = strtolower($request->file('cover')->getClientOriginalExtension());
             $cover_full_name = $cover_name.'.'.$ext;
-            $upload_path ='storage/services/';
-            $cover_url = $upload_path.$cover_full_name;
-            $request->file('cover')->move($upload_path, $cover_full_name);
-
-            $coverPath = $cover_url;
+            
+            // Store cover using Laravel Storage
+            $coverPath = $request->file('cover')->storeAs('services', $cover_full_name, 'public');
         }
 
         Service::create([
@@ -87,8 +90,7 @@ class ServiceController extends Controller
             'price' => $data['price'],
         ]);
 
-        return redirect()->route('dashboard.service.index')->with('success', 'Berhasil mengubah data!');
-
+        return redirect()->route('dashboard.service.index')->with('success', 'Berhasil menambah data layanan!');
     }
 
     /**
@@ -121,87 +123,98 @@ class ServiceController extends Controller
             'cover.mimes' => 'Format gambar sampul tidak valid',
             'price.required' => 'Harga wajib diisi'
         ];
+        
         $data = $request->validate([
             'name' => 'required',
             'description' => 'required',
             'service_category_id' => 'required',
-            'cover' => 'nullable',
+            'cover' => 'nullable|mimes:jpeg,png,jpg,avif,webp',
             'image' => 'nullable',
             'image.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'price' => 'required',
         ], $message);
 
-        // Menyimpan array untuk menyimpan semua gambar
+        // Handle multiple images
         $imagePaths = [];
-
         if($request->hasFile('image')) {
+            // Delete old images if exist
+            if($service->image) {
+                $oldImages = json_decode($service->image, true);
+                if(is_array($oldImages)) {
+                    foreach($oldImages as $oldImage) {
+                        if(Storage::disk('public')->exists($oldImage)) {
+                            Storage::disk('public')->delete($oldImage);
+                        }
+                    }
+                }
+            }
+            
+            // Upload new images
             foreach ($request->file('image') as $key => $image) {
-                // $imagePath = $image->store('images', 'public');
-                // $imagePaths[] = $imagePath; // Menambahkan path gambar ke array
-                $image_name = 'LAYANAN-'.$key.'-'.Str::slug($request->name).rand(000,999);
+                $image_name = 'LAYANAN-'.$key.'-'.Str::slug($request->name).'-'.rand(1000,9999);
                 $ext = strtolower($image->getClientOriginalExtension());
                 $image_full_name = $image_name.'.'.$ext;
-                $upload_path ='storage/services/';
-                $image_url = $upload_path.$image_full_name;
-                $image->move($upload_path, $image_full_name);
-                $imagePaths[] = $image_url;
+                
+                $imagePath = $image->storeAs('services', $image_full_name, 'public');
+                $imagePaths[] = $imagePath;
             }
-        }else{
-            $imagePaths = json_decode($service->image); // Mengambil array gambar yang ada di database
+        } else {
+            // Keep existing images
+            $imagePaths = json_decode($service->image, true) ?: [];
         }
 
+        // Handle cover image
+        $coverPath = $service->cover; // Keep existing cover as default
         if($request->file('cover')) {
-            $cover_name = 'SAMPUL-LAYANAN-'.Str::slug($request->name).rand(000,999);
+            // Delete old cover if exists
+            if($service->cover && Storage::disk('public')->exists($service->cover)) {
+                Storage::disk('public')->delete($service->cover);
+            }
+            
+            // Upload new cover
+            $cover_name = 'SAMPUL-LAYANAN-'.Str::slug($request->name).'-'.rand(1000,9999);
             $ext = strtolower($request->file('cover')->getClientOriginalExtension());
             $cover_full_name = $cover_name.'.'.$ext;
-            $upload_path ='storage/services/';
-            $cover_url = $upload_path.$cover_full_name;
-            $request->file('cover')->move($upload_path, $cover_full_name);
-            if($service->cover && file_exists($service->cover)) {
-                unlink($service->cover);
-            }
-            $coverPath = $cover_url;
-        } else {
-            $coverPath  = $service->cover;
+            
+            $coverPath = $request->file('cover')->storeAs('services', $cover_full_name, 'public');
         }
 
-        // Memperbarui model Service dengan data yang baru
+        // Update service
         $service->update([
             'name' => $data['name'],
             'description' => $data['description'],
             'service_categories_id' => $data['service_category_id'],
             'cover' => $coverPath,
             'price' => $data['price'],
-            'image' => json_encode($imagePaths) // Mengubah array menjadi JSON
+            'image' => json_encode($imagePaths)
         ]);
 
-        return redirect()->route('dashboard.service.index')->with('success', 'Berhasil mengubah data');
+        return redirect()->route('dashboard.service.index')->with('success', 'Berhasil mengubah data layanan');
     }
-
 
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(Service $service)
     {
+        // Delete images if exist
         if ($service->image) {
-            // $decodedImage = json_decode($service->image);
-            $photos = explode('|', $service->image);
-            // dd($photos);
-            foreach ($photos as $photo) {
-                // Delete from storage
-                // Storage::delete('public/services/' . $photo);
-                // $imagePath = url($photo);
-                if(file_exists($photo)) {
-                    unlink($photo);
+            $images = json_decode($service->image, true);
+            if(is_array($images)) {
+                foreach ($images as $image) {
+                    if(Storage::disk('public')->exists($image)) {
+                        Storage::disk('public')->delete($image);
+                    }
                 }
             }
         }
 
-        if($service->cover && file_exists($service->cover)) {
-            unlink($service->cover);
+        // Delete cover if exists
+        if($service->cover && Storage::disk('public')->exists($service->cover)) {
+            Storage::disk('public')->delete($service->cover);
         }
+        
         $service->delete();
-        return redirect()->route('dashboard.service.index')->with('success', 'Service deleted successfully');
+        return redirect()->route('dashboard.service.index')->with('success', 'Layanan berhasil dihapus');
     }
 }
