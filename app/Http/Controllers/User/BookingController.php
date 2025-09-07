@@ -30,7 +30,6 @@ class BookingController extends Controller
             ->format('a4')
             ->name($filename.'.pdf')
             ->margins(20, 20, 20, 20) // left, top, right, bottom
-            ->noSandbox()
             ->download();
         // return view('dashboard.user.bookings.export', compact('transaction', 'room_review'));
     }

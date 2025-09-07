@@ -509,36 +509,38 @@
     }
 
     const ctx = document.getElementById('roomChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: ['Kamar Terpesan', 'Kamar Tersedia'],
-            datasets: [{
-                data: [{{ $bookedRooms ?? 0 }}, {{ $availableRooms ?? 0}}],
-                backgroundColor: [
-                    '#FF8042', // Warna untuk kamar terpesan
-                    '#00C49F'  // Warna untuk kamar tersedia
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const total = {{ $bookedRooms ?? 0 + $availableRooms ?? 0}};
-                            const percentage = Math.round((context.raw / total) * 100);
-                            return `${context.label}: ${context.raw} (${percentage}%)`;
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Kamar Terpesan', 'Kamar Tersedia'],
+                datasets: [{
+                    data: [{{ $bookedRooms ?? 0 }}, {{ $availableRooms ?? 0 }}],
+                    backgroundColor: [
+                        '#FF8042',
+                        '#00C49F'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = {{ ($bookedRooms ?? 0) + ($availableRooms ?? 0) }};
+                                const percentage = Math.round((context.raw / total) * 100);
+                                return `${context.label}: ${context.raw} (${percentage}%)`;
+                            }
                         }
                     }
                 }
             }
-        }
-    });
+        });
+    }
 </script>
 
 <script>
