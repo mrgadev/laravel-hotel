@@ -8,7 +8,7 @@ use App\Models\RoomReview;
 use App\Models\Transaction;
 use App\Models\SiteSettings;
 use Illuminate\Http\Request;
-use Spatie\LaravelPdf\Facades\Pdf;
+use Barryvdh\DomPDF\Facade\Pdf; // Perubahan ini
 use Illuminate\Support\Facades\Auth;
 
 class BookingController extends Controller

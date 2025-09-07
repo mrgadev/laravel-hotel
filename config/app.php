@@ -9,13 +9,13 @@ return [
     
     'url' => env('APP_URL', 'http://localhost'),
     
-    'timezone' => 'UTC',
+    'timezone' => 'Asia/Jakarta',
     
-    'locale' => 'en',
+    'locale' => 'id',
     
-    'fallback_locale' => 'en',
+    'fallback_locale' => 'id',
     
-    'faker_locale' => 'en_US',
+    'faker_locale' => 'id_ID',
     
     'key' => env('APP_KEY'),
     
