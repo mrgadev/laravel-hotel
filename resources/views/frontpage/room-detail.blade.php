@@ -517,19 +517,62 @@
             registerForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
-                const formData = new FormData(this);
+                // Clear previous errors
                 const registerError = document.getElementById('registerError');
                 registerError.classList.add('hidden');
                 
-                // Validate password confirmation
+                // Get form values
+                const name = document.getElementById('registerName').value.trim();
+                const email = document.getElementById('registerEmail').value.trim();
+                const phone = document.getElementById('registerPhone').value.trim();
                 const password = document.getElementById('registerPassword').value;
                 const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
+                
+                // Client-side validation
+                if (!name) {
+                    registerError.textContent = 'Nama lengkap harus diisi.';
+                    registerError.classList.remove('hidden');
+                    return;
+                }
+                
+                if (!email || !isValidEmail(email)) {
+                    registerError.textContent = 'Email tidak valid.';
+                    registerError.classList.remove('hidden');
+                    return;
+                }
+                
+                if (!phone) {
+                    registerError.textContent = 'Nomor telepon harus diisi.';
+                    registerError.classList.remove('hidden');
+                    return;
+                }
+                
+                if (!password || password.length < 8) {
+                    registerError.textContent = 'Password minimal 8 karakter.';
+                    registerError.classList.remove('hidden');
+                    return;
+                }
                 
                 if (password !== passwordConfirm) {
                     registerError.textContent = 'Password dan konfirmasi password tidak cocok.';
                     registerError.classList.remove('hidden');
                     return;
                 }
+                
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('name', name);
+                formData.append('email', email);
+                formData.append('phone', phone);
+                formData.append('password', password);
+                formData.append('password_confirmation', passwordConfirm);
+                formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+                
+                // Show loading state
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = 'Mendaftar...';
+                submitBtn.disabled = true;
                 
                 fetch(baseUrl + '/ajax/register', {
                     method: 'POST',
@@ -542,14 +585,27 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        currentUserPhone = formData.get('phone');
+                        currentUserPhone = phone;
                         currentUserId = data.user_id;
                         document.getElementById('otpUserId').value = currentUserId;
                         registerForm.classList.add('hidden');
                         otpForm.classList.remove('hidden');
                         modalTitle.textContent = 'Verifikasi OTP';
                     } else {
-                        registerError.textContent = data.message || 'Registrasi gagal. Silakan coba lagi.';
+                        // Display validation errors
+                        if (data.errors) {
+                            let errorMessages = [];
+                            Object.keys(data.errors).forEach(field => {
+                                if (Array.isArray(data.errors[field])) {
+                                    errorMessages.push(...data.errors[field]);
+                                } else {
+                                    errorMessages.push(data.errors[field]);
+                                }
+                            });
+                            registerError.innerHTML = errorMessages.join('<br>');
+                        } else {
+                            registerError.textContent = data.message || 'Registrasi gagal. Silakan coba lagi.';
+                        }
                         registerError.classList.remove('hidden');
                     }
                 })
@@ -557,6 +613,11 @@
                     console.error('Register error:', error);
                     registerError.textContent = 'Terjadi kesalahan. Silakan coba lagi.';
                     registerError.classList.remove('hidden');
+                })
+                .finally(() => {
+                    // Reset button state
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
                 });
             });
 
