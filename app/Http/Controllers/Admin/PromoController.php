@@ -7,6 +7,7 @@ use App\Models\Room;
 use App\Models\Promo;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class PromoController extends Controller
 {
@@ -54,38 +55,31 @@ class PromoController extends Controller
             'room_id.*' => 'exists:rooms,id',
         ], $message);
 
+        $coverPath = null;
         if($request->file('cover')) {
-            $cover_name = 'PROMO-'.Str::slug($request->name).rand(000,999);
+            // Gunakan Storage::disk('public') untuk konsistensi
+            $cover_name = 'PROMO-'.Str::slug($request->name).'-'.rand(1000,9999);
             $ext = strtolower($request->file('cover')->getClientOriginalExtension());
             $cover_full_name = $cover_name.'.'.$ext;
-            $upload_path ='storage/promo/';
-            $cover_url = $upload_path.$cover_full_name;
-            $request->file('cover')->move($upload_path, $cover_full_name);
-
-            $coverPath = $cover_url;
+            
+            // Simpan ke storage/app/public/promo/
+            $coverPath = $request->file('cover')->storeAs('promo', $cover_full_name, 'public');
         }
-
-        // Promo::create([
-        //     'name' => $request->name,
-        //     'code' => $request->code,
-        //     'cover' => $coverPath,
-        //     'amount' => $request->amount,
-        //     'start_date' => $request->start_date,
-        //     'end_date' => $request->end_date,
-        //     'is_all' => $request->is_all,
-        // ]);
 
         $promo = new Promo();
         $promo->name = $request->name;
         $promo->code = $request->code;
-        $promo->cover = $coverPath;
+        $promo->cover = $coverPath; // Simpan path relatif seperti 'promo/filename.jpg'
         $promo->amount = $request->amount;
         $promo->start_date = $request->start_date;
         $promo->end_date = $request->end_date;
-        $promo->is_all = $request->is_all;
+        $promo->is_all = $request->boolean('is_all', false);
         $promo->save();
 
-        $promo->rooms()->sync($request->room_id);
+        // Sync rooms jika ada
+        if (!$promo->is_all && $request->has('room_id')) {
+            $promo->rooms()->sync($request->room_id);
+        }
 
         return redirect()->route('dashboard.promo.index')->with('success', 'Promo created successfully');
     }
@@ -115,45 +109,32 @@ class PromoController extends Controller
         $request->validate([
             'name' => 'required',
             'code' => 'required',
-            'cover' => 'nullable',
+            'cover' => 'nullable|mimes:jpeg,jpg,png,avif,webp',
             'amount' => 'required|integer|max:95',
             'start_date' => 'required',
             'end_date' => 'required',
-            'is_all' => 'required', // tambah boolean disini
+            'is_all' => 'boolean',
             'room_id' => 'nullable|array',
             'room_id.*' => 'exists:rooms,id',
         ]);
 
+        $coverPath = $promo->cover; // Gunakan cover lama sebagai default
+
         if($request->file('cover')) {
-            $cover_name = 'PROMO-'.Str::slug($request->name).rand(000,999);
+            // Hapus gambar lama jika ada
+            if($promo->cover && Storage::disk('public')->exists($promo->cover)) {
+                Storage::disk('public')->delete($promo->cover);
+            }
+            
+            // Upload gambar baru
+            $cover_name = 'PROMO-'.Str::slug($request->name).'-'.rand(1000,9999);
             $ext = strtolower($request->file('cover')->getClientOriginalExtension());
             $cover_full_name = $cover_name.'.'.$ext;
-            $upload_path ='storage/promo/';
-            $cover_url = $upload_path.$cover_full_name;
-            $request->file('cover')->move($upload_path, $cover_full_name);
-            if($promo->cover && file_exists($promo->cover)) {
-                unlink($promo->cover);
-            }
-            $coverPath = $cover_url;
-        } else {
-            $coverPath  = $promo->cover;
+            
+            $coverPath = $request->file('cover')->storeAs('promo', $cover_full_name, 'public');
         }
 
-        // Ubah pengecekan is_all nya gini
-        if ($request->boolean('is_all')) { // pake method boolean()
-            $promo->rooms()->detach();
-            $rooms = [];
-        } else {
-            if ($request->has('room_id')) {
-                $rooms = $request->room_id;
-            } else {
-                $rooms = $promo->rooms->pluck('id')->toArray();
-            }
-        }
-
-        $promo->rooms()->sync($rooms);
-
-        // Convert is_all ke boolean sebelum update
+        // Update promo
         $promo->update([
             'name' => $request->name,
             'code' => $request->code,
@@ -161,8 +142,17 @@ class PromoController extends Controller
             'amount' => $request->amount,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
-            'is_all' => $request->boolean('is_all') // pake method boolean() disini juga
+            'is_all' => $request->boolean('is_all', false)
         ]);
+
+        // Handle room associations
+        if ($request->boolean('is_all')) {
+            $promo->rooms()->detach(); // Hapus semua relasi room
+        } else {
+            if ($request->has('room_id')) {
+                $promo->rooms()->sync($request->room_id);
+            }
+        }
 
         return redirect()->route('dashboard.promo.index')->with('success', 'Promo updated successfully');
     }
@@ -172,11 +162,17 @@ class PromoController extends Controller
      */
     public function destroy(Promo $promo)
     {
-        if($promo->cover && file_exists($promo->cover)) {
-            unlink($promo->cover);
+        // Hapus gambar jika ada
+        if($promo->cover && Storage::disk('public')->exists($promo->cover)) {
+            Storage::disk('public')->delete($promo->cover);
         }
-        $promo->delete();
+        
+        // Hapus relasi dengan rooms
         $promo->rooms()->detach();
+        
+        // Hapus promo
+        $promo->delete();
+
         return redirect()->route('dashboard.promo.index')->with('success', 'Promo deleted successfully');
     }
 }

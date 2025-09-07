@@ -85,41 +85,47 @@
         @foreach ($promos as $promo)    
         <div class="flex flex-col gap-5 mb-10">
             <div class="relative">
-                <img src="{{Storage::url($promo->cover)}}" alt="" class="w-full h-48 object-cover rounded-xl relative">
-                <div id="copyPromoCode" class="absolute bottom-5 left-5 flex items-center gap-1 px-3 py-1 rounded-full bg-primary-100 text-primary-600 w-fit text-sm">
-                    <input type="text" id="promoCode" value="{{$promo->code}}" class="bg-transparent border-none outline-none text-sm ">
-                    <button class="" id="copyPromoCodeBtn"><span class="material-symbols-rounded scale-75">file_copy</span></button>
+                @if($promo->cover)
+                    <img src="{{ asset('storage/' . $promo->cover) }}" alt="{{ $promo->name }}" class="w-full h-48 object-cover rounded-xl relative" 
+                         onerror="this.onerror=null; this.src='{{ asset('images/placeholder-promo.jpg') }}';">
+                @else
+                    <div class="w-full h-48 bg-gray-200 rounded-xl flex items-center justify-center">
+                        <span class="text-gray-500">No Image</span>
+                    </div>
+                @endif
+                <div class="absolute bottom-5 left-5 flex items-center gap-1 px-3 py-1 rounded-full bg-primary-100 text-primary-600 w-fit text-sm">
+                    <input type="text" value="{{$promo->code}}" class="bg-transparent border-none outline-none text-sm w-20" readonly>
+                    <button class="copy-promo-btn" data-code="{{$promo->code}}" title="Copy kode promo">
+                        <span class="material-symbols-rounded scale-75">file_copy</span>
+                    </button>
                 </div>
             </div>
             <div class="flex flex-col gap-2">
-                <p class="text-sm flex items-center gap-1 text-primary-500"><span class="material-symbols-rounded">calendar_month</span>{{date('j F Y', strtotime($promo->start_date))}} - {{date('j F Y', strtotime($promo->end_date))}}</p>
+                <p class="text-sm flex items-center gap-1 text-primary-500">
+                    <span class="material-symbols-rounded">calendar_month</span>
+                    {{date('j F Y', strtotime($promo->start_date))}} - {{date('j F Y', strtotime($promo->end_date))}}
+                </p>
                 <h3 class="text-xl text-primary-700">{{$promo->name}}</h3>
                 <p class="text-primary-500">
                     Berlaku untuk kamar :
                 </p>
-                <div class="flex">
-                    @forelse ($promo->rooms as $room)
-
-                    <div class="flex items-center" style="">
-                        <p class="bg-primary-100 me-2 text-primary-600 text-xs rounded-full px-3 py-1 border border-primary-600">{{$room->name}}</p>
-                    </div>
-
-                    @empty
-
-                    <div class="flex items-center" style="">
-                        <p class="bg-primary-100 me-2 text-primary-600 text-xs rounded-full px-3 py-1 border border-primary-600">Semua Kamar</p>
-                    </div>
-
-                    @endforelse
+                <div class="flex flex-wrap gap-2">
+                    @if($promo->is_all || $promo->rooms->isEmpty())
+                        <div class="flex items-center">
+                            <p class="bg-primary-100 text-primary-600 text-xs rounded-full px-3 py-1 border border-primary-600">Semua Kamar</p>
+                        </div>
+                    @else
+                        @foreach ($promo->rooms as $room)
+                            <div class="flex items-center">
+                                <p class="bg-primary-100 text-primary-600 text-xs rounded-full px-3 py-1 border border-primary-600">{{$room->name}}</p>
+                            </div>
+                        @endforeach
+                    @endif
                 </div>
             </div>
         </div>
         @endforeach
-
-        
     </div>
-
-   
 </div>
 
 @include('components.frontpage-footer')
@@ -141,30 +147,47 @@
         const closeMobileMenu = document.getElementById('closeMobileMenu');
         const mobileMenu = document.getElementById('mobileMenu');
 
-        openMobileMenu.addEventListener('click', function() {
-            mobileMenu.classList.remove('hidden');
-        });
+        if (openMobileMenu && mobileMenu) {
+            openMobileMenu.addEventListener('click', function() {
+                mobileMenu.classList.remove('hidden');
+            });
+        }
 
-        closeMobileMenu.addEventListener('click', function() {
-            mobileMenu.classList.add('hidden');
-        });
+        if (closeMobileMenu && mobileMenu) {
+            closeMobileMenu.addEventListener('click', function() {
+                mobileMenu.classList.add('hidden');
+            });
+        }
 
-        
-
-        const copyPromoCode = document.getElementById('copyPromoCode');
-        const promoCode = document.getElementById('promoCode');
-        const copyPromoCodeBtn = document.getElementById('copyPromoCodeBtn');
-
-        copyPromoCodeBtn.addEventListener('click', function() {
-            promoCode.select();
-            document.execCommand("copy");
+        // Handle copy promo code functionality
+        document.querySelectorAll('.copy-promo-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const code = this.getAttribute('data-code');
+                
+                // Create a temporary textarea to copy text
+                const textarea = document.createElement('textarea');
+                textarea.value = code;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                
+                // Optional: Show feedback
+                const originalText = this.innerHTML;
+                this.innerHTML = '<span class="material-symbols-rounded scale-75">check</span>';
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                }, 1000);
+            });
         });
 
         const toggleUserMenu = document.getElementById('toggleUserMenu');
         const userMenu = document.getElementById('userMenu');
 
-        toggleUserMenu.addEventListener('click', function() {
-            userMenu.classList.toggle('hidden');
-        })
+        if (toggleUserMenu && userMenu) {
+            toggleUserMenu.addEventListener('click', function() {
+                userMenu.classList.toggle('hidden');
+            });
+        }
     </script>
 @endpush

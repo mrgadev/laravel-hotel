@@ -172,7 +172,7 @@
         <div class="text-gray-600 font-light">
             <p>{!! $service->description !!}</p> 
         </div>
-        <h2 class="my-5 text-xl text-primary-700 font-medium">Fasilitas yang Didapatkan</h2>
+        {{-- <h2 class="my-5 text-xl text-primary-700 font-medium">Fasilitas yang Didapatkan</h2>
         <div class="flex flex-col gap-8">
             <div class="flex flex-col gap-3">
                 <h2 class="text-primary-700 text-lg">Pre-Wedding</h2>
@@ -203,7 +203,7 @@
                     <li>90 Minutes Traditional Honeymoon Spa Treatment (Couple)</li>
                 </ul>
             </div>
-        </div>
+        </div> --}}
     </div>
     {{-- <div class="my-12 flex flex-col lg:flex-row justify-between">
         <div class="flex flex-col gap-8 w-3/4">
