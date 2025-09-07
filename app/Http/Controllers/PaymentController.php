@@ -115,7 +115,7 @@ class PaymentController extends Controller
 
             // Buat bill dengan Flip
             $billData = [
-                'title' => 'Pembayaran '.$transaction->room->name.' - UNS Inn',
+                'title' => 'Pembayaran '.$transaction->room->name.' - UNS Inn Hotel',
                 'amount' => $total_amount,
                 'type' => 'SINGLE',
                 'expired_date' => $expiredDate,
@@ -640,7 +640,7 @@ class PaymentController extends Controller
 
         // Buat bill dengan Flip
         $billData = [
-            'title' => 'Pembayaran '.$transaction->room->name.' - UNS Inn (Split Payment)',
+            'title' => 'Pembayaran '.$transaction->room->name.' - UNS Inn Hotel (Split Payment)',
             'amount' => $total_amount,
             'type' => 'SINGLE',
             'expired_date' => $expiredDate, // Format yang diperbaiki
@@ -921,9 +921,9 @@ class PaymentController extends Controller
             $paymentDeadline = $this->formatDateTimeForUser($transaction->payment_deadline, 'd M Y H:i');
             $paymentUrl = $transaction->payment_url;
 
-            $message = "🏨 *KONFIRMASI PEMESANAN - UNS INN* 🏨\n\n";
+            $message = "🏨 *KONFIRMASI PEMESANAN - UNS Inn Hotel* 🏨\n\n";
             $message .= "Halo {$transaction->name}!\n";
-            $message .= "Terima kasih telah melakukan pemesanan kamar di UNS Inn.\n\n";
+            $message .= "Terima kasih telah melakukan pemesanan kamar di UNS Inn Hotel.\n\n";
             $message .= "📋 *Detail Reservasi:*\n";
             $message .= "• Invoice: *{$transaction->invoice}*\n";
             $message .= "• Tipe Kamar: *{$transaction->room->name}*\n";
@@ -960,9 +960,9 @@ class PaymentController extends Controller
             $checkIn = $this->formatDateTimeForUser($transaction->check_in, 'l, d M Y');
             $checkOut = $this->formatDateTimeForUser($transaction->check_out, 'l, d M Y');
             
-            $message = "🏨 *KONFIRMASI PEMESANAN CASH - UNS INN* 🏨\n\n";
+            $message = "🏨 *KONFIRMASI PEMESANAN CASH - UNS Inn Hotel* 🏨\n\n";
             $message .= "Halo {$transaction->name}!\n";
-            $message .= "Terima kasih telah melakukan pemesanan kamar di UNS Inn.\n\n";
+            $message .= "Terima kasih telah melakukan pemesanan kamar di UNS Inn Hotel.\n\n";
             $message .= "📋 *Detail Reservasi:*\n";
             $message .= "• Invoice: *{$transaction->invoice}*\n";
             $message .= "• Tipe Kamar: *{$transaction->room->name}*\n";
@@ -971,7 +971,7 @@ class PaymentController extends Controller
             $message .= "• Total Pembayaran: *Rp " . number_format($transaction->total_price, 0, ',', '.') . "*\n";
             $message .= "• Metode Pembayaran: *Cash*\n\n";
             $message .= "💰 *Pembayaran Cash:*\n";
-            $message .= "Silakan lakukan pembayaran secara langsung di front desk UNS Inn saat check-in atau sebelumnya.\n\n";
+            $message .= "Silakan lakukan pembayaran secara langsung di front desk UNS Inn Hotel saat check-in atau sebelumnya.\n\n";
             $message .= "Pastikan untuk membawa invoice ini sebagai bukti reservasi.\n\n";
             $message .= "Terima kasih! 😊";
 
@@ -997,7 +997,7 @@ class PaymentController extends Controller
             $checkIn = $this->formatDateTimeForUser($transaction->check_in, 'l, d M Y');
             $checkOut = $this->formatDateTimeForUser($transaction->check_out, 'l, d M Y');
             
-            $message = "🏨 *KONFIRMASI PEMBAYARAN SALDO - UNS INN* 🏨\n\n";
+            $message = "🏨 *KONFIRMASI PEMBAYARAN SALDO - UNS Inn Hotel* 🏨\n\n";
             $message .= "Halo {$transaction->name}!\n";
             $message .= "Pembayaran dengan saldo Anda telah berhasil diproses.\n\n";
             $message .= "📋 *Detail Reservasi:*\n";
@@ -1030,7 +1030,7 @@ class PaymentController extends Controller
     private function sendPaymentTimeoutMessage($transaction)
     {
         try {
-            $message = "⚠️ *WAKTU PEMBAYARAN HABIS - UNS INN* ⚠️\n\n";
+            $message = "⚠️ *WAKTU PEMBAYARAN HABIS - UNS Inn Hotel* ⚠️\n\n";
             $message .= "Halo {$transaction->name},\n\n";
             $message .= "Mohon maaf, waktu pembayaran untuk reservasi Anda telah habis.\n\n";
             $message .= "📋 *Detail Reservasi yang Dibatalkan:*\n";
@@ -1059,7 +1059,7 @@ class PaymentController extends Controller
     private function sendBookingCancellationMessage($transaction)
     {
         try {
-            $message = "❌ *PEMBATALAN RESERVASI - UNS INN* ❌\n\n";
+            $message = "❌ *PEMBATALAN RESERVASI - UNS Inn Hotel* ❌\n\n";
             $message .= "Halo {$transaction->name},\n\n";
             $message .= "Reservasi Anda telah dibatalkan karena melewati batas waktu pembayaran.\n\n";
             $message .= "📋 *Detail Reservasi yang Dibatalkan:*\n";
@@ -1092,7 +1092,7 @@ class PaymentController extends Controller
             $checkIn = $this->formatDateTimeForUser($transaction->check_in, 'l, d M Y');
             $checkOut = $this->formatDateTimeForUser($transaction->check_out, 'l, d M Y');
             
-            $message = "✅ *PEMBAYARAN BERHASIL - UNS INN* ✅\n\n";
+            $message = "✅ *PEMBAYARAN BERHASIL - UNS Inn Hotel* ✅\n\n";
             $message .= "Halo {$transaction->name}!\n";
             $message .= "Selamat! Pembayaran Anda telah berhasil dikonfirmasi.\n\n";
             $message .= "🎉 *Detail Reservasi Terkonfirmasi:*\n";
@@ -1103,7 +1103,7 @@ class PaymentController extends Controller
             $message .= "• Check-out: *{$checkOut}*\n";
             $message .= "• Total Dibayar: *Rp " . number_format($transaction->total_price, 0, ',', '.') . "*\n\n";
             $message .= "📍 *Informasi Check-in:*\n";
-            $message .= "Silakan datang ke front desk UNS Inn dengan membawa:\n";
+            $message .= "Silakan datang ke front desk UNS Inn Hotel dengan membawa:\n";
             $message .= "• Bukti pembayaran ini\n";
             $message .= "• Kartu identitas (KTP/SIM/Paspor)\n\n";
             $message .= "Kami menantikan kedatangan Anda!\n";
@@ -1132,7 +1132,7 @@ class PaymentController extends Controller
             $checkIn = $this->formatDateTimeForUser($transaction->check_in, 'l, d M Y');
             $checkOut = $this->formatDateTimeForUser($transaction->check_out, 'l, d M Y');
             
-            $message = "✅ *PEMBAYARAN SALDO BERHASIL - UNS INN* ✅\n\n";
+            $message = "✅ *PEMBAYARAN SALDO BERHASIL - UNS Inn Hotel* ✅\n\n";
             $message .= "Halo {$transaction->name}!\n";
             $message .= "Pembayaran dengan saldo Anda telah berhasil diproses dan dikonfirmasi.\n\n";
             $message .= "🎉 *Detail Reservasi Terkonfirmasi:*\n";
@@ -1144,7 +1144,7 @@ class PaymentController extends Controller
             $message .= "• Total Dibayar: *Rp " . number_format($transaction->total_price, 0, ',', '.') . "* (Saldo)\n\n";
             $message .= "💰 Saldo Anda telah dipotong sesuai dengan total pembayaran.\n\n";
             $message .= "📍 *Informasi Check-in:*\n";
-            $message .= "Silakan datang ke front desk UNS Inn dengan membawa kartu identitas.\n\n";
+            $message .= "Silakan datang ke front desk UNS Inn Hotel dengan membawa kartu identitas.\n\n";
             $message .= "Terima kasih telah menggunakan layanan saldo kami!\n";
             $message .= "Semoga menginap yang menyenangkan! 😊🏨";
 
@@ -1171,7 +1171,7 @@ class PaymentController extends Controller
             $checkIn = $this->formatDateTimeForUser($transaction->check_in, 'l, d M Y');
             $checkOut = $this->formatDateTimeForUser($transaction->check_out, 'l, d M Y');
             
-            $message = "💰 *PENGINGAT PEMBAYARAN CASH - UNS INN* 💰\n\n";
+            $message = "💰 *PENGINGAT PEMBAYARAN CASH - UNS Inn Hotel* 💰\n\n";
             $message .= "Halo {$transaction->name}!\n";
             $message .= "Reservasi Anda telah dikonfirmasi dengan metode pembayaran Cash.\n\n";
             $message .= "🎯 *Detail Reservasi:*\n";
@@ -1182,7 +1182,7 @@ class PaymentController extends Controller
             $message .= "• Check-out: *{$checkOut}*\n";
             $message .= "• Total Pembayaran: *Rp " . number_format($transaction->total_price, 0, ',', '.') . "*\n\n";
             $message .= "💡 *Pengingat Penting:*\n";
-            $message .= "Silakan lakukan pembayaran secara langsung di front desk UNS Inn saat check-in atau sebelumnya.\n\n";
+            $message .= "Silakan lakukan pembayaran secara langsung di front desk UNS Inn Hotel saat check-in atau sebelumnya.\n\n";
             $message .= "📋 Pastikan membawa:\n";
             $message .= "• Invoice ini sebagai bukti reservasi\n";
             $message .= "• Uang tunai sesuai total pembayaran\n";
@@ -1209,7 +1209,7 @@ class PaymentController extends Controller
     private function sendPaymentFailedMessage($transaction)
     {
         try {
-            $message = "❌ *PEMBAYARAN GAGAL - UNS INN* ❌\n\n";
+            $message = "❌ *PEMBAYARAN GAGAL - UNS Inn Hotel* ❌\n\n";
             $message .= "Halo {$transaction->name},\n\n";
             $message .= "Mohon maaf, pembayaran untuk reservasi Anda tidak dapat diproses.\n\n";
             $message .= "📋 *Detail Reservasi:*\n";
@@ -1245,7 +1245,7 @@ class PaymentController extends Controller
             $checkIn = $this->formatDateTimeForUser($transaction->check_in, 'l, d M Y');
             $checkOut = $this->formatDateTimeForUser($transaction->check_out, 'l, d M Y');
             
-            $message = "🏨 *SPLIT PAYMENT CONFIRMATION - UNS INN* 🏨\n\n";
+            $message = "🏨 *SPLIT PAYMENT CONFIRMATION - UNS Inn Hotel* 🏨\n\n";
             $message .= "Halo {$transaction->name}!\n";
             $message .= "Split payment (Saldo + Cash) Anda telah dikonfirmasi.\n\n";
             $message .= "🎯 *Detail Reservasi:*\n";
@@ -1276,7 +1276,7 @@ class PaymentController extends Controller
             $checkIn = $this->formatDateTimeForUser($transaction->check_in, 'l, d M Y');
             $checkOut = $this->formatDateTimeForUser($transaction->check_out, 'l, d M Y');
             
-            $message = "✅ *SPLIT PAYMENT BERHASIL - UNS INN* ✅\n\n";
+            $message = "✅ *SPLIT PAYMENT BERHASIL - UNS Inn Hotel* ✅\n\n";
             $message .= "Halo {$transaction->name}!\n";
             $message .= "Split payment (Saldo + Flip) Anda telah berhasil diproses.\n\n";
             $message .= "🎉 *Detail Reservasi Terkonfirmasi:*\n";
@@ -1306,7 +1306,7 @@ class PaymentController extends Controller
             $checkIn = $this->formatDateTimeForUser($transaction->check_in, 'l, d M Y');
             $checkOut = $this->formatDateTimeForUser($transaction->check_out, 'l, d M Y');
             
-            $message = "🏨 *SPLIT PAYMENT BOOKING - UNS INN* 🏨\n\n";
+            $message = "🏨 *SPLIT PAYMENT BOOKING - UNS Inn Hotel* 🏨\n\n";
             $message .= "Halo {$transaction->name}!\n";
             $message .= "Reservasi Anda dengan split payment (Saldo + Cash) telah dikonfirmasi.\n\n";
             $message .= "📋 *Detail Reservasi:*\n";
@@ -1337,7 +1337,7 @@ class PaymentController extends Controller
             $checkOut = $this->formatDateTimeForUser($transaction->check_out, 'l, d M Y');
             $paymentDeadline = $this->formatDateTimeForUser($transaction->payment_deadline, 'd M Y H:i');
             
-            $message = "🏨 *SPLIT PAYMENT BOOKING - UNS INN* 🏨\n\n";
+            $message = "🏨 *SPLIT PAYMENT BOOKING - UNS Inn Hotel* 🏨\n\n";
             $message .= "Halo {$transaction->name}!\n";
             $message .= "Reservasi Anda dengan split payment (Saldo + Online) telah dikonfirmasi.\n\n";
             $message .= "📋 *Detail Reservasi:*\n";
@@ -1366,14 +1366,14 @@ class PaymentController extends Controller
     private function sendFlipCallbackSuccessMessage($transaction)
     {
         try {
-            $message = "🎉 *KONFIRMASI OTOMATIS - UNS INN* 🎉\n\n";
+            $message = "🎉 *KONFIRMASI OTOMATIS - UNS Inn Hotel* 🎉\n\n";
             $message .= "Halo {$transaction->name}!\n";
             $message .= "Pembayaran Anda telah berhasil dikonfirmasi secara otomatis oleh sistem.\n\n";
             $message .= "✅ *Status:* PAID\n";
             $message .= "• Invoice: *{$transaction->invoice}*\n";
             $message .= "• Nomor Kamar: *{$transaction->room_number}*\n";
             $message .= "• Total: *Rp " . number_format($transaction->total_price, 0, ',', '.') . "*\n\n";
-            $message .= "Reservasi Anda telah terkonfirmasi. Selamat datang di UNS Inn! 😊";
+            $message .= "Reservasi Anda telah terkonfirmasi. Selamat datang di UNS Inn Hotel! 😊";
 
             $this->send_message($transaction->phone, $message);
         } catch (\Exception $e) {
@@ -1387,7 +1387,7 @@ class PaymentController extends Controller
     private function sendFlipCallbackFailureMessage($transaction)
     {
         try {
-            $message = "⚠️ *NOTIFIKASI OTOMATIS - UNS INN* ⚠️\n\n";
+            $message = "⚠️ *NOTIFIKASI OTOMATIS - UNS Inn Hotel* ⚠️\n\n";
             $message .= "Halo {$transaction->name},\n\n";
             $message .= "Sistem telah mendeteksi bahwa pembayaran Anda tidak dapat diproses.\n\n";
             $message .= "❌ *Status:* CANCELLED\n";
@@ -1408,7 +1408,7 @@ class PaymentController extends Controller
     private function sendFlipWebhookSuccessMessage($transaction)
     {
         try {
-            $message = "🔔 *KONFIRMASI WEBHOOK - UNS INN* 🔔\n\n";
+            $message = "🔔 *KONFIRMASI WEBHOOK - UNS Inn Hotel* 🔔\n\n";
             $message .= "Halo {$transaction->name}!\n";
             $message .= "Pembayaran Anda telah berhasil diverifikasi melalui webhook.\n\n";
             $message .= "✅ Status pembayaran: *CONFIRMED*\n";
@@ -1428,7 +1428,7 @@ class PaymentController extends Controller
     private function sendFlipWebhookFailureMessage($transaction)
     {
         try {
-            $message = "🔔 *NOTIFIKASI WEBHOOK - UNS INN* 🔔\n\n";
+            $message = "🔔 *NOTIFIKASI WEBHOOK - UNS Inn Hotel* 🔔\n\n";
             $message .= "Halo {$transaction->name},\n\n";
             $message .= "Webhook telah mengkonfirmasi bahwa pembayaran tidak berhasil.\n\n";
             $message .= "❌ Status: *CANCELLED*\n";
@@ -1454,9 +1454,9 @@ class PaymentController extends Controller
             
             // Send reminder 1 day before check-in
             if (Carbon::parse($checkInDate)->subDay()->format('Y-m-d') == $today) {
-                $message = "🔔 *PENGINGAT CHECK-IN - UNS INN* 🔔\n\n";
+                $message = "🔔 *PENGINGAT CHECK-IN - UNS Inn Hotel* 🔔\n\n";
                 $message .= "Halo {$transaction->name}!\n";
-                $message .= "Pengingat bahwa check-in Anda di UNS Inn adalah besok.\n\n";
+                $message .= "Pengingat bahwa check-in Anda di UNS Inn Hotel adalah besok.\n\n";
                 $message .= "📅 *Detail Check-in:*\n";
                 $message .= "• Tanggal: *{$checkIn}*\n";
                 $message .= "• Nomor Kamar: *{$transaction->room_number}*\n";
@@ -1490,16 +1490,16 @@ class PaymentController extends Controller
             
             // Send reminder on check-out day
             if ($checkOutDate == $today) {
-                $message = "🔔 *PENGINGAT CHECK-OUT - UNS INN* 🔔\n\n";
+                $message = "🔔 *PENGINGAT CHECK-OUT - UNS Inn Hotel* 🔔\n\n";
                 $message .= "Halo {$transaction->name}!\n";
-                $message .= "Hari ini adalah hari check-out Anda dari UNS Inn.\n\n";
+                $message .= "Hari ini adalah hari check-out Anda dari UNS Inn Hotel.\n\n";
                 $message .= "📅 *Detail Check-out:*\n";
                 $message .= "• Tanggal: *{$checkOut}*\n";
                 $message .= "• Nomor Kamar: *{$transaction->room_number}*\n";
                 $message .= "• Invoice: *{$transaction->invoice}*\n\n";
                 $message .= "⏰ *Waktu Check-out:* Sebelum 12:00 WIB\n\n";
                 $message .= "📝 Silakan selesaikan proses check-out di front desk.\n\n";
-                $message .= "Terima kasih telah menginap di UNS Inn!\n";
+                $message .= "Terima kasih telah menginap di UNS Inn Hotel!\n";
                 $message .= "Semoga Anda puas dengan layanan kami. 😊";
 
                 $this->send_message($transaction->phone, $message);
@@ -1520,9 +1520,9 @@ class PaymentController extends Controller
     public function sendThankYouMessage($transaction)
     {
         try {
-            $message = "🙏 *TERIMA KASIH - UNS INN* 🙏\n\n";
+            $message = "🙏 *TERIMA KASIH - UNS Inn Hotel* 🙏\n\n";
             $message .= "Halo {$transaction->name}!\n";
-            $message .= "Terima kasih telah menginap di UNS Inn.\n\n";
+            $message .= "Terima kasih telah menginap di UNS Inn Hotel.\n\n";
             $message .= "🏨 *Ringkasan Menginap:*\n";
             $message .= "• Invoice: *{$transaction->invoice}*\n";
             $message .= "• Nomor Kamar: *{$transaction->room_number}*\n";
@@ -1530,7 +1530,7 @@ class PaymentController extends Controller
             $message .= "⭐ Kami berharap Anda puas dengan layanan kami.\n\n";
             $message .= "📝 Jika ada feedback atau saran, jangan ragu untuk menghubungi kami.\n\n";
             $message .= "🔄 Kami menantikan kunjungan Anda kembali di masa depan!\n\n";
-            $message .= "Salam hangat dari tim UNS Inn! 😊🏨";
+            $message .= "Salam hangat dari tim UNS Inn Hotel! 😊🏨";
 
             $this->send_message($transaction->phone, $message);
             

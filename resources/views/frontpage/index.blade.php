@@ -78,7 +78,7 @@
 @section('main')
 <header class="xl:px-36 px-12 bg-fixed relative w-screen h-screen">
     <nav class=" duration-500 transition-all flex items-center justify-between py-6 text-white" id="mainNavbar">
-        <a href="{{route('frontpage.index')}}"  class="text-lg font-medium">UNS Inn</a>
+        <a href="{{route('frontpage.index')}}"  class="text-lg font-medium">UNS Inn Hotel</a>
         <div class="xl:flex gap-8 font-light hidden">
             <a href="{{route('frontpage.index')}}" class="hover:font-medium {{(Route::is('frontpage.index') ? 'font-medium' : '')}}">Beranda</a>
             <a href="{{route('frontpage.rooms')}}" class="hover:font-medium {{(Route::is('frontpage.rooms') ? 'font-medium' : '')}}">Kamar</a>
@@ -130,7 +130,7 @@
     </nav>
     <nav class="duration-500 bg-white w-screen h-screen fixed hidden top-0 left-0 right-0 z-10 px-12" id="mobileMenu">
         <div class="flex items-center justify-between py-6 text-primary-500">
-            <a href="{{route('frontpage.index')}}"  class="text-lg font-medium">UNS Inn</a>
+            <a href="{{route('frontpage.index')}}"  class="text-lg font-medium">UNS Inn Hotel</a>
             <span class="material-symbols-rounded" id="closeMobileMenu">close</span>
         </div>
 
@@ -154,7 +154,7 @@
 
     <section class="main h-[90%] flex flex-col justify-center gap-3 relative">
         <h1 class="text-4xl xl:text-6xl text-white">
-            {!! $frontpage_site_setting && $frontpage_site_setting->tagline ? $frontpage_site_setting->tagline : 'Selamat Datang di UNS Inn' !!}
+            {!! $frontpage_site_setting && $frontpage_site_setting->tagline ? $frontpage_site_setting->tagline : 'Selamat Datang di UNS Inn Hotel' !!}
         </h1>
         <div class="text-white">
             {!! $frontpage_site_setting && $frontpage_site_setting->description ? $frontpage_site_setting->description : 'Hotel terbaik untuk pengalaman menginap yang tak terlupakan' !!}

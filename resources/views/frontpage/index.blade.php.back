@@ -39,7 +39,7 @@
     <header class="grid grid-cols-2 gap-8 px-36 h-4/5 translate-y-20">
         <div class=" flex flex-col gap-5">
             <h1 class="md:text-4xl lg:text-7xl text-primary-600">Liburan impian Anda dimulai disini!</h1>
-            <p class="text-lg text-primary-700">UNS Inn menawarkan kenyamanan dan kemewahan yang tiada duanya,<br> dengan fasilitas kelas dunia dan layanan istimewa, kami siap menyambut Anda.</p>
+            <p class="text-lg text-primary-700">UNS Inn Hotel menawarkan kenyamanan dan kemewahan yang tiada duanya,<br> dengan fasilitas kelas dunia dan layanan istimewa, kami siap menyambut Anda.</p>
             <form action="#" class="translate-y-28 bg-primary-200 py-5 px-3 flex items-center justify-between rounded-xl">
                 <div class="flex items-center gap-5">
                     <div class="grid gap-2">

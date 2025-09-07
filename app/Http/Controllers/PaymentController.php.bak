@@ -113,7 +113,7 @@ class PaymentController extends Controller
         $paymentData = [
             'external_id' => $data['invoice'],
             'amount' => $total_amount,
-            'description' => 'Pembayaran '.$transaction->room->name.' dari UNS Inn selama '.$nights.' malam',
+            'description' => 'Pembayaran '.$transaction->room->name.' dari UNS Inn Hotel selama '.$nights.' malam',
             'invoice_duration' => 60 * 60 * $this->site_settings->payment_deadline ?? 1,
             'customer' => [
                 'given_names' => $transaction->name,
@@ -399,7 +399,7 @@ class PaymentController extends Controller
             ]);            
         }
         
-        $pesan = "Halo ".$transaction->user->name."!\nTerimakasih telah melakukan pemesanan kamar di UNS Inn\nBerikut ini detail reservasi Anda: \nNomor Kamar: *".$transaction->room_number."*\nTipe Kamar: *".$transaction->room->name."*\nTanggal Check-in: *".Carbon::parse($transaction->check_in)->isoFormat('dddd, D MMM YYYY')."*\n\nSemoga liburan Anda menyenangkan!";
+        $pesan = "Halo ".$transaction->user->name."!\nTerimakasih telah melakukan pemesanan kamar di UNS Inn Hotel\nBerikut ini detail reservasi Anda: \nNomor Kamar: *".$transaction->room_number."*\nTipe Kamar: *".$transaction->room->name."*\nTanggal Check-in: *".Carbon::parse($transaction->check_in)->isoFormat('dddd, D MMM YYYY')."*\n\nSemoga liburan Anda menyenangkan!";
         $this->send_message($transaction->phone, $pesan);
         return view('frontpage.payment.success', compact('transaction'));
     }
@@ -537,7 +537,7 @@ class PaymentController extends Controller
         $paymentData = [
             'external_id' => $data['invoice'],
             'amount' => $total_amount,
-            'description' => 'Pembayaran '.$transaction->room->name.' dari UNS Inn selama '.$nights.' malam',
+            'description' => 'Pembayaran '.$transaction->room->name.' dari UNS Inn Hotel selama '.$nights.' malam',
             'invoice_duration' => 60 * 60 * $this->site_settings->payment_deadline ?? 1,
             'customer' => [
                 'given_names' => $transaction->name,

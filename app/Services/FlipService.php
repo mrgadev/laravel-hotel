@@ -99,7 +99,7 @@ class FlipService
     public function formatBillData($transaction, $totalAmount, $nights)
     {
         return [
-            'title' => 'Pembayaran ' . $transaction->room->name . ' - UNS Inn',
+            'title' => 'Pembayaran ' . $transaction->room->name . ' - UNS Inn Hotel',
             'amount' => $totalAmount,
             'type' => 'SINGLE',
             'expired_date' => $transaction->payment_deadline->toDateTimeString(),

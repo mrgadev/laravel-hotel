@@ -16,7 +16,7 @@
             <div class="relative flex flex-col min-w-0 break-words bg-transparent border-0 shadow-none lg:py4 rounded-2xl bg-clip-border">
               <div class="p-6 pb-0 mb-0">
                 <h4 class="font-medium text-3xl mb-5x text-primary-700">Reset Password</h4>
-                {{-- <p class="mb-0 text-[#976033]">Masuk ke UNS Inn untuk melakukan reservasi kamar</p> --}}
+                {{-- <p class="mb-0 text-[#976033]">Masuk ke UNS Inn Hotel untuk melakukan reservasi kamar</p> --}}
               </div>
               <div class="flex-auto p-6">
                 <form role="form" method="POST" action="{{route('forgot.password.reset.process')}}">

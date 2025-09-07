@@ -71,7 +71,7 @@
     </div>
     <div class="flex flex-col gap-8 h-[70%] justify-center">
         <h1 class="text-4xl lg:text-6xl text-primary-700">Jelajahi Kamar Terbaik Kami</h1>
-        <p class=" text-primary-500">Dapatkan perjalanan sempurna dan pengalaman baru bersama UNS Inn!<br> Tambahkan kesenangan ke dalamnya dengan promo kami. Jadikan liburan Anda momen yang tak terlupakan.</p>
+        <p class=" text-primary-500">Dapatkan perjalanan sempurna dan pengalaman baru bersama UNS Inn Hotel!<br> Tambahkan kesenangan ke dalamnya dengan promo kami. Jadikan liburan Anda momen yang tak terlupakan.</p>
     </div>
 </header>
 

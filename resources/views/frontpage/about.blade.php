@@ -11,7 +11,7 @@
 <header class="lg:px-36 px-12 pt-36 lg:h-screen flex flex-col justify-center items-center">
     <div class="flex flex-col gap-8 h-[70%] items-center justify-center">
         <h1 class="text-4xl lg:text-6xl text-center text-primary-700">Akomodasi Sempurna untuk<br> Perjalanan Sempurna</h1>
-        <p class=" text-primary-500 text-center text-sm">Berwisata bukan hanya sekedar datang ke suatu kota, mengunjungi suatu tempat, dan mudik. Perjalanan sebenarnya adalah saat Anda menjadi bagian dari penduduk setempat, mencicipi makanan lokal, dan merasakan budaya lokal. Sejak tahun 2017, UNS Inn hadir untuk menawarkan pengalaman berbeda bagi wisatawan untuk menikmati perjalanan yang sempurna.</p>
+        <p class=" text-primary-500 text-center text-sm">Berwisata bukan hanya sekedar datang ke suatu kota, mengunjungi suatu tempat, dan mudik. Perjalanan sebenarnya adalah saat Anda menjadi bagian dari penduduk setempat, mencicipi makanan lokal, dan merasakan budaya lokal. Sejak tahun 2017, UNS Inn Hotel hadir untuk menawarkan pengalaman berbeda bagi wisatawan untuk menikmati perjalanan yang sempurna.</p>
     </div>
 
     {{-- Featured by --}}

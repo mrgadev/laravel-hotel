@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>UNS Inn - @yield('title')</title>
+    <title>UNS Inn Hotel - @yield('title')</title>
     @stack('addons-style')
     @include('components.style')
 </head>

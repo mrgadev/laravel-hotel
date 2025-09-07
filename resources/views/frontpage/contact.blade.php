@@ -134,7 +134,7 @@
 
 <footer class="w-screen bg-primary-100 flex justify-between px-12 lg:px-36 py-14">
     <div class="flex flex-col gap-5">
-        <h2 class="text-3xl text-primary-500">UNS Inn</h2>
+        <h2 class="text-3xl text-primary-500">UNS Inn Hotel</h2>
         <p class="text-primary-800">Jl. H. R. Rasuna Said No.4 Blok Kav. B<br> Kuningan, Setia Budi, Kota Jakarta Selatan<br>DKI Jakarta 12910</p>
         <div class="flex items-center gap-5 text-2xl text-primary-800">
             <a href="#" class=""><i class="bi bi-instagram"></i></a>
