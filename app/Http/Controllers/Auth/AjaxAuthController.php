@@ -98,7 +98,7 @@ class AjaxAuthController extends Controller
                 'name' => ['required', 'string', 'max:255', 'min:2'],
                 'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
                 'phone' => ['required', 'string', 'max:20', 'min:10', 'unique:users,phone'],
-                'password' => ['required', 'string', 'min:8', 'confirmed'],
+                'password' => ['required', 'confirmed', Rules\Password::defaults()],
                 'password_confirmation' => ['required', 'string', 'min:8'],
             ], [
                 'name.required' => 'Nama lengkap harus diisi.',
@@ -112,7 +112,6 @@ class AjaxAuthController extends Controller
                 'phone.max' => 'Nomor telepon maksimal 20 karakter.',
                 'phone.unique' => 'Nomor telepon sudah terdaftar.',
                 'password.required' => 'Password harus diisi.',
-                'password.min' => 'Password minimal 8 karakter.',
                 'password.confirmed' => 'Konfirmasi password tidak cocok.',
                 'password_confirmation.required' => 'Konfirmasi password harus diisi.',
             ]);
@@ -126,7 +125,7 @@ class AjaxAuthController extends Controller
                 ], 422);
             }
 
-            // Generate OTP
+            // Generate OTP (same pattern as RegisteredUserController)
             $otp = rand(111111, 999999);
             
             $user = User::create([
@@ -140,10 +139,10 @@ class AjaxAuthController extends Controller
                 'phone_verified_at' => null,
             ]);
 
-            // Assign user role
+            // Assign user role (same as RegisteredUserController)
             $user->assignRole('user');
 
-            // Create initial saldo record
+            // Create initial saldo record (same as RegisteredUserController)
             Saldo::create([
                 'user_id' => $user->id,
                 'credit' => 0,
@@ -156,13 +155,15 @@ class AjaxAuthController extends Controller
 
             Log::info('User created successfully:', ['user_id' => $user->id, 'phone' => $user->phone]);
 
-            // Send OTP via WhatsApp using Fonnte
-            $this->sendOTP($request->phone, $otp, $user->name);
+            // Send OTP via WhatsApp using Fonnte (same pattern as RegisteredUserController)
+            $pesan = "Halo ". $user->name . "\n\n Silahkan Masukkan Kode OTP Untuk Melanjutkan Registrasi \n\n *$user->otp*";
+            $this->send_message($request->phone, $pesan);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Registrasi berhasil! Kode OTP telah dikirim ke WhatsApp Anda.',
-                'user_id' => $user->id
+                'user_id' => $user->id,
+                'phone' => $user->phone
             ]);
 
         } catch (Exception $e) {
@@ -178,7 +179,7 @@ class AjaxAuthController extends Controller
     }
 
     /**
-     * Handle OTP verification
+     * Handle OTP verification (same pattern as RegisteredUserController)
      */
     public function verifyOtp(Request $request)
     {
@@ -201,16 +202,19 @@ class AjaxAuthController extends Controller
                 ], 422);
             }
 
-            $user = User::find($request->user_id);
+            // Find user by ID and OTP (same pattern as RegisteredUserController)
+            $user = User::where('id', $request->user_id)
+                       ->where('otp', $request->otp)
+                       ->first();
 
-            if (!$user || $user->otp !== $request->otp) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Kode OTP salah atau sudah kadaluarsa.'
-                ], 400);
+                ], 422);
             }
 
-            // Check if user is already verified
+            // Check if user is already verified (same pattern as RegisteredUserController)
             if ($user->access === 'yes') {
                 return response()->json([
                     'success' => false,
@@ -218,14 +222,14 @@ class AjaxAuthController extends Controller
                 ], 422);
             }
 
-            // Verify user and clear OTP
+            // Verify user and clear OTP (same pattern as RegisteredUserController)
             $user->update([
                 'phone_verified_at' => now(),
                 'otp' => null,
-                'access' => 'yes' // Update access status
+                'access' => 'yes'
             ]);
 
-            // Login the user
+            // Login the user (same pattern as RegisteredUserController)
             Auth::login($user);
             $request->session()->regenerate();
 
@@ -236,7 +240,12 @@ class AjaxAuthController extends Controller
                 'success' => true,
                 'message' => 'Verifikasi berhasil! Anda akan diarahkan ke halaman checkout.',
                 'redirect_url' => $redirectUrl,
-                'user' => $user
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone
+                ]
             ]);
 
         } catch (Exception $e) {
@@ -249,7 +258,7 @@ class AjaxAuthController extends Controller
     }
 
     /**
-     * Resend OTP
+     * Resend OTP (same pattern as RegisteredUserController)
      */
     public function resendOtp(Request $request)
     {
@@ -278,12 +287,13 @@ class AjaxAuthController extends Controller
                 ], 404);
             }
 
-            // Generate new OTP
+            // Generate new OTP (same pattern as RegisteredUserController)
             $otp = rand(111111, 999999);
             $user->update(['otp' => $otp]);
 
-            // Send OTP via WhatsApp using Fonnte
-            $this->sendOTP($request->phone, $otp, $user->name);
+            // Send OTP via WhatsApp using Fonnte (same pattern as RegisteredUserController)
+            $pesan = "Halo ". $user->name . "\n\n Silahkan Masukkan Kode OTP Untuk Melanjutkan Registrasi \n\n *$user->otp*";
+            $this->send_message($request->phone, $pesan);
 
             return response()->json([
                 'success' => true,
@@ -296,62 +306,6 @@ class AjaxAuthController extends Controller
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat mengirim ulang OTP. Silahkan coba lagi.'
             ], 500);
-        }
-    }
-
-    /**
-     * Build checkout URL with booking parameters
-     */
-    private function buildCheckoutUrl(Request $request)
-    {
-        $roomId = $request->input('room_id');
-        $checkIn = $request->input('check_in');
-        $checkOut = $request->input('check_out');
-        
-        if ($roomId) {
-            $params = [];
-            if ($checkIn) $params['check_in'] = $checkIn;
-            if ($checkOut) $params['check_out'] = $checkOut;
-            
-            $queryString = !empty($params) ? '?' . http_build_query($params) : '';
-            return route('frontpage.checkout', $roomId) . $queryString;
-        }
-        
-        return $request->input('redirect_url', route('frontpage.index'));
-    }
-
-    /**
-     * Send OTP via WhatsApp using Fonnte
-     */
-    private function sendOTP($phone, $otp, $name = null)
-    {
-        try {
-            // Format the message similar to RegisteredUserController
-            $message = "Halo " . ($name ?: 'Customer') . "\n\n";
-            $message .= "Silahkan masukkan kode OTP untuk melanjutkan proses verifikasi:\n\n";
-            $message .= "*" . $otp . "*\n\n";
-            $message .= "Kode ini berlaku selama 10 menit.\n";
-            $message .= "Jangan berikan kode ini kepada siapapun.";
-
-            // Send message using Fonnte trait
-            $response = $this->send_message($phone, $message);
-
-            // Log the response for debugging
-            Log::info("OTP sent via Fonnte to {$phone}:", [
-                'otp' => $otp,
-                'response' => $response
-            ]);
-
-            return true;
-
-        } catch (Exception $e) {
-            // Log error but don't fail the registration process
-            Log::error("Failed to send OTP via Fonnte: " . $e->getMessage());
-            
-            // Fallback: Log OTP for development
-            Log::info("OTP fallback for {$phone}: {$otp}");
-            
-            return false;
         }
     }
 
@@ -389,12 +343,13 @@ class AjaxAuthController extends Controller
                 ], 422);
             }
 
-            // Generate new OTP
+            // Generate new OTP (same pattern as RegisteredUserController)
             $otp = rand(111111, 999999);
             $user->update(['otp' => $otp]);
 
-            // Send OTP via WhatsApp
-            $this->sendOTP($user->phone, $otp, $user->name);
+            // Send OTP via WhatsApp (same pattern as RegisteredUserController)
+            $pesan = "Halo ". $user->name . "\n\n Silahkan Masukkan Kode OTP Untuk Melanjutkan Registrasi \n\n *$user->otp*";
+            $this->send_message($user->phone, $pesan);
 
             return response()->json([
                 'success' => true,
@@ -409,5 +364,26 @@ class AjaxAuthController extends Controller
                 'message' => 'Terjadi kesalahan. Silahkan coba lagi.'
             ], 500);
         }
+    }
+
+    /**
+     * Build checkout URL with booking parameters
+     */
+    private function buildCheckoutUrl(Request $request)
+    {
+        $roomId = $request->input('room_id');
+        $checkIn = $request->input('check_in');
+        $checkOut = $request->input('check_out');
+        
+        if ($roomId) {
+            $params = [];
+            if ($checkIn) $params['check_in'] = $checkIn;
+            if ($checkOut) $params['check_out'] = $checkOut;
+            
+            $queryString = !empty($params) ? '?' . http_build_query($params) : '';
+            return route('frontpage.checkout', $roomId) . $queryString;
+        }
+        
+        return $request->input('redirect_url', route('frontpage.index'));
     }
 }
