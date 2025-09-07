@@ -79,7 +79,8 @@
             <a href="#cover-modal" class="block w-full">
                 @if($service->cover)
                     <img class="h-full w-full object-cover object-center rounded-xl" 
-                         src="{{ asset('storage/' . $service->cover) }}" 
+                         src="https://unsinnsolo.co.id/wp-content/uploads/2024/12/Madukara-Room_1_11zon-scaled.jpg" 
+                         {{-- src="{{ asset('storage/' . $service->cover) }}"  --}}
                          alt="{{ $service->name }}"
                          onerror="this.onerror=null; this.src='{{ asset('images/placeholder-service.jpg') }}';">
                 @else
@@ -92,7 +93,7 @@
     </div>
     
     <!-- Gallery Images -->
-    <div class="grid grid-cols-2 gap-5">
+    {{-- <div class="grid grid-cols-2 gap-5">
         @php
             $images = json_decode($service->image, true);
         @endphp
@@ -101,9 +102,7 @@
                 <div class="relative flex h-40 cursor-pointer overflow-hidden rounded-xl">
                     <a href="#image-modal-{{ $index }}" class="block h-full w-full">
                         <img class="h-full w-full object-cover object-center hover:scale-105 transition-transform duration-300"
-                             {{-- src="{{ Storage::url($image) }}"  --}}
                              src="https://unsinnsolo.co.id/wp-content/uploads/2024/12/Madukara-Room_1_11zon-scaled.jpg"
-                             {{-- src="{{ asset('storage/' . $image) }}"  --}}
                              alt="{{ $service->name }} - Image {{ $index + 1 }}"
                              onerror="this.onerror=null; this.src='{{ asset('images/placeholder-service.jpg') }}';">
                     </a>
@@ -119,7 +118,7 @@
                 <span class="text-gray-500">Tidak ada gambar galeri tersedia</span>
             </div>
         @endif
-    </div>
+    </div> --}}
 </header>
 
 <!-- Service Details Section -->
