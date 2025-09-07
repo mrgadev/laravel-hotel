@@ -1,0 +1,178 @@
+@extends('layout.frontpage')
+@section('title', 'Beranda')
+
+@section('main')
+    <nav class="hidden lg:flex items-center justify-between lg:px-36 lg:py-12 sticky bg-primary-100">
+        <div class="flex items-center gap-5">
+            <div>
+                <span class="material-symbols-rounded text-2xl scale-150 text-primary-500">house</span>
+            </div>
+            
+            <div class="hidden lg:flex items-center gap-5">
+                <a href="#" class="hover:font-medium">Beranda</a>
+                <a href="#" class="hover:font-medium">Promo</a>
+                <a href="#" class="hover:font-medium">Layanan Lainnya </a>
+                <a href="#" class="hover:font-medium">Kontak</a>
+                <a href="#" class="hover:font-medium">Tentang Kami</a>
+            </div>
+        </div>
+        <a href="#" class="px-5 py-3 rounded-full bg-primary-500 text-white">Masuk / Daftar</a>
+    </nav>
+
+    <nav class="lg:hidden flex items-center justify-between px-10 py-5 w-screen z-10 bg-primary-100 fixed border-b border-primary-400">
+        <div>
+            <span class="material-symbols-rounded text-2xl scale-150 text-primary-500">house</span>
+        </div>    
+        <button class="text-2xl flex items-center">
+            <span class="material-symbols-rounded scale-125 text-primary-500">drag_handle</span>
+        </button>
+        {{-- <a href="#" class="px-5 py-3 rounded-full bg-primary-500 text-white">Masuk / Daftar</a> --}}
+    </nav>
+    <div class="hidden lg:flex items-center gap-5">
+        <a href="#" class="hover:font-medium">Beranda</a>
+        <a href="#" class="hover:font-medium">Promo</a>
+        <a href="#" class="hover:font-medium">Layanan Lainnya </a>
+        <a href="#" class="hover:font-medium">Kontak</a>
+        <a href="#" class="hover:font-medium">Tentang Kami</a>
+    </div>
+
+    <header class="grid grid-cols-2 gap-8 px-36 h-4/5 translate-y-20">
+        <div class=" flex flex-col gap-5">
+            <h1 class="md:text-4xl lg:text-7xl text-primary-600">Liburan impian Anda dimulai disini!</h1>
+            <p class="text-lg text-primary-700">UNS Inn menawarkan kenyamanan dan kemewahan yang tiada duanya,<br> dengan fasilitas kelas dunia dan layanan istimewa, kami siap menyambut Anda.</p>
+            <form action="#" class="translate-y-28 bg-primary-200 py-5 px-3 flex items-center justify-between rounded-xl">
+                <div class="flex items-center gap-5">
+                    <div class="grid gap-2">
+                        <p>Pilih kamar</p>
+                        <select name="" class="outline-none bg-transparent" id="">
+                            <option value="">Standard</option>
+                            <option value="">Family</option>
+                            <option value="">Studio</option>
+                            <option value="">Presidential</option>
+                        </select>
+                    </div>
+                    <div class="grid gap-2">
+                        <p>Check-in</p>
+                        <input type="date" class="bg-transparent outline-none border-none">
+                    </div>
+                    <div class="grid gap-2">
+                        <p>Pilih kamar</p>
+                        <input type="date" class="bg-transparent outline-none border-none">
+                    </div>
+                </div>
+                <button class="px-10 py-5 bg-primary-500 rounded-xl text-white">Pesan sekarang</button>
+            </form>
+        </div>
+
+        <div class="flex flex-col gap-3">
+            <img src="https://unsplash.com/photos/67-sOi7mVIk/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8NTh8fGhvdGVsfGVufDB8fHx8MTcyOTI0MTgzMHww&force=true&w=1920" class="rounded-3xl" alt="">
+            <div class="flex items-center justify-between bg-primary-500 rounded-full py-5 px-10 text-white">
+                <p class="">
+                    <i class="bi bi-star-fill"></i>
+                    Best 5-Star Hotel in Jakarta
+                </p>
+                <img src="{{public_path('/images/traveloka.svg')}}" class="w-10">
+            </div>
+        </div>
+    </header>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+@endsection
