@@ -27,7 +27,7 @@
                     <button class="text-lg" id="toggleUserMenu">{{Auth::user()->name}}</button>
                     <p class="user-role text-xs px-2 py-1 bg-primary-700 text-white rounded-md w-fit">{{ucfirst(Auth::user()->roles->first()->name)}}</p>
                 </div>
-                <div id="userMenu" class="bg-white absolute right-28 top-28 border border-primary-700 rounded-xl p-3 hidden">
+                <div id="userMenu" class="bg-white absolute z-10 right-28 top-28 border border-primary-700 rounded-xl p-3 hidden">
                     <div class="flex flex-col gap-2">
                         <a href="{{route('dashboard.home')}}" class="text-primary-700">Dashboard</a>
                         <hr>

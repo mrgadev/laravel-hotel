@@ -103,7 +103,7 @@
                         {{ Auth::user()->roles->first() ? ucfirst(Auth::user()->roles->first()->name) : 'Member' }}
                     </p>
                 </div>
-                <div id="userMenu" class="bg-white absolute right-28 top-28 border border-primary-700 rounded-xl p-3 hidden">
+                <div id="userMenu" class="bg-white absolute z-10 right-28 top-28 border border-primary-700 rounded-xl p-3 hidden">
                     <div class="flex flex-col gap-2">
                         <a href="{{route('dashboard.home')}}" class="text-primary-700">Dashboard</a>
                         <hr>
@@ -149,7 +149,9 @@
             @auth
             <a href="{{route('dashboard.home')}}" class="px-5 py-3 rounded-full bg-primary-500 text-white w-fit">Dashboard</a>
             <form action="{{route('logout')}}" method="POST">
-                <button type="submit" class="text-red-500 font-medium">Keluar</button>
+                @csrf
+                @method('POST')
+                <button type="submit" class="text-red-600 z-20">Keluar</button>
             </form>
             @endauth
         </div>
