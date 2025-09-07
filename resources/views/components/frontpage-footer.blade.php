@@ -6,8 +6,8 @@
         <div class="flex flex-col gap-5">
             <h2 class="text-2xl text-primary-700">UNS Inn Hotel</h2>
             <div class="text-primary-800">
-                <a href="#" class="underline-offset-0">Jl. Nama Jalan</a>
-                {{-- <a href="{{$site_settings->maps_link}}" class="underline-offset-0">{!!$site_settings->address!!}</a> --}}
+                {{-- <a href="#" class="underline-offset-0">Jl. Nama Jalan</a> --}}
+                <a href="{{$site_settings->maps_link}}" class="underline-offset-0">{!!$site_settings->address!!}</a>
             </div>
             {{-- <p >Jl. H. R. Rasuna Said No.4 Blok Kav. B<br> Kuningan, Setia Budi, Kota Jakarta Selatan<br>DKI Jakarta 12910</p> --}}
             <div class="flex items-center gap-5 text-2xl text-primary-800">
@@ -41,7 +41,7 @@
     </div>
 
     <div class="w-screen px-12 lg:px-36 py-8 flex items-center bg-primary-700 text-white justify-between">
-        <p>&copy; 2024 UNS Inn Hotel</p>
+        <p>&copy; {{date("Y")}} UNS Inn Hotel</p>
         <a href="#">Kembali ke atas</a>
     </div>
 </footer>
