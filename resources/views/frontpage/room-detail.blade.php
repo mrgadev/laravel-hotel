@@ -621,6 +621,11 @@
                 });
             });
 
+            function isValidEmail(email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
+            }
+
             // Handle OTP verification
             otpForm.addEventListener('submit', function(e) {
                 e.preventDefault();
