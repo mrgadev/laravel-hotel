@@ -163,7 +163,7 @@
 </div>
 
 <!-- Gallery Image Modals -->
-@if (is_array($images) && !empty($images))
+{{-- @if (is_array($images) && !empty($images))
     @foreach ($images as $index => $image)
         <div id="image-modal-{{ $index }}" class="fixed inset-0 z-50 bg-black bg-opacity-60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 target:opacity-100 target:pointer-events-auto">
             <a href="#" class="fixed inset-0 flex items-center justify-center p-4">
@@ -178,7 +178,7 @@
             </a>
         </div>
     @endforeach
-@endif
+@endif --}}
 
 @include('components.frontpage-footer')
 
