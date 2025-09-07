@@ -11,7 +11,7 @@
 <header class="lg:px-36 px-12 pt-36 lg:h-screen flex flex-col justify-center items-center">
     <div class="flex flex-col gap-8 h-[70%] items-center justify-center">
         <h1 class="text-4xl lg:text-6xl text-center text-primary-700">Akomodasi Sempurna untuk<br> Perjalanan Sempurna</h1>
-        <p class=" text-primary-500 text-center text-sm">Berwisata bukan hanya sekedar datang ke suatu kota, mengunjungi suatu tempat, dan mudik. Perjalanan sebenarnya adalah saat Anda menjadi bagian dari penduduk setempat, mencicipi makanan lokal, dan merasakan budaya lokal. Sejak tahun 2017, UNS Inn Hotel hadir untuk menawarkan pengalaman berbeda bagi wisatawan untuk menikmati perjalanan yang sempurna.</p>
+        <p class=" text-primary-500 text-center text-sm">UNS Inn sebuah pesona hospitality kota Solo yang terletak di daerah strategis, dikelilingi pusat perbelanjaan modern, pusat bisnis, dan sarana pendidikan bertaraf internasional.  Berada di dalam universitas terbesar kota Solo dan berlokasi di zona lingkungan hijau, UNS Inn menawarkan sebuah perpaduan sempurna antara budaya, kehangatan, intelektual dan keprofesionalan hospitality yang begitu unik dan sulit anda lupakan.</p>
     </div>
 
     {{-- Featured by --}}
@@ -118,7 +118,9 @@
             <p class="text-gray-800">Hubungi tim kami setiap hari dari 08:00 sampai 16:00</p>
             <div class="flex items-center gap-2">
                 <span class="material-symbols-rounded text-primary-500">call</span>
-                <a href="tel:{{$site_settings->phone}}" class="underline text-gray-700">{!!$site_settings->phone_text!!}</a>
+                {{-- <a href="tel:{{$site_settings->phone}}" class="underline text-gray-700">{!!$site_settings->phone_text!!}</a> --}}
+                
+                <a href="tel:0271641756" class="underline text-gray-700">(0271) 641756</a>
             </div>
         </div>
 
@@ -127,15 +129,15 @@
             <p class="text-gray-800">Ngobrol dengan tim kami yang ramah via live chat</p>
             <div class="flex items-center gap-2">
                 <i class="bi bi-whatsapp text-primary-500"></i>
-                <a href="tel:wa.me/6281398848566" class="underline text-gray-700">Hubungi via WhatsApp</a>
+                <a href="https://wa.me/6285102390002?text=Hallo%20UNS%20Inn,%20saya%20mau%20..." class="underline text-gray-700">Hubungi via WhatsApp</a>
             </div>
             <div class="flex items-center gap-2">
                 <i class="bi bi-envelope-at-fill text-primary-500"></i>
-                <a href="mailto:cs@mahirhotel.com" class="underline text-gray-700">Kirim Email</a>
+                <a href="#" class="underline text-gray-700">Kirim Email</a>
             </div>
             <div class="flex items-center gap-2">
                 <i class="bi bi-twitter text-primary-500"></i>
-                <a href="https://x.com/mrizqighana" class="underline text-gray-700">Kirim Pesan Twitter</a>
+                <a href="#" class="underline text-gray-700">Kirim Pesan Twitter</a>
             </div>
         </div>
 
