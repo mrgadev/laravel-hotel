@@ -30,6 +30,14 @@
             </li>
             {{-- Laporan Keuangan --}}
             <li class="mt-0.5 w-full">
+                <a class="py-2.7 text-primary-700  text-sm ease-nav-brand my-0 mx-2 flex items-center whitespace-nowrap rounded-lg px-4 font-medium transition-all hover:bg-primary-500 hover:text-white {{Route::is('dashboard.report.*') ? 'bg-primary-500 text-white' : ''}}" href="{{route('dashboard.report.index')}}">
+                    <div class="mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-center fill-current stroke-0 text-center xl:p-2.5">
+                         <i class="ni ni-collection"></i>
+                    </div>
+                    <span class="ml-1 duration-300 opacity-100 pointer-events-none ease">Laporan Keuangan</span>
+                </a>
+            </li>
+            {{-- <li class="mt-0.5 w-full">
                 <a class="py-2.7 text-primary-700  text-sm ease-nav-brand my-0 mx-2 flex items-center whitespace-nowrap rounded-lg px-4 font-medium justify-between transition-all hover:bg-primary-500 hover:text-white {{Route::is('dashboard.report.*') || Route::is('dashboard.penarikan-saldo.*') ? 'bg-primary-500 text-white' : ''}}" href="#" id="reportToggle">
                     <div class="flex items-center">
                         <div class="mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-center stroke-0 text-center xl:p-2.5">
@@ -52,7 +60,7 @@
                     </li>
                 </ul>
                 </a>
-            </li>
+            </li> --}}
             {{-- Menu Kamar --}}
             <li class="mt-0.5 w-full">
                 <a class="py-2.7 text-primary-700  text-sm ease-nav-brand my-0 mx-2 flex items-center whitespace-nowrap rounded-lg px-4 font-medium justify-between transition-all hover:bg-primary-500 hover:text-white {{Route::is('dashboard.room_facility.*') || Route::is('dashboard.room.*') || Route::is('dashboard.accomodation-plan.*') || Route::is('dashboard.room-rules.*') ? 'bg-primary-500 text-white' : ''}}" href="#" id="roomToggle">
@@ -244,14 +252,14 @@
                     </a>
                 </li>
 
-                <li class="mt-0.5 w-full">
+                {{-- <li class="mt-0.5 w-full">
                     <a class="py-2.7 text-primary-700  text-sm ease-nav-brand my-0 mx-2 flex items-center whitespace-nowrap rounded-lg px-4 font-medium transition-all hover:bg-primary-500 hover:text-white {{Route::is('dashboard.saldo.index') ? 'bg-primary-500 text-white' : ''}}" href="{{route('dashboard.saldo.index')}}">
                         <div class="mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-center stroke-0 text-center xl:p-2.5">
                             <i class="relative top-0 text-base leading-normal bi bi-clock-history"></i>
                         </div>
                         <span class="ml-1 duration-300 opacity-100 pointer-events-none ease">Riwayat Saldo</span>
                     </a>
-                </li>
+                </li> --}}
 
                 <li class="w-full mt-4">
                     <h6 class="pl-6 ml-2 text-xs font-bold leading-tight uppercase opacity-60">Account pages</h6>

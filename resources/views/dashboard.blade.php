@@ -270,12 +270,12 @@
             }
         @endphp --}}
         {{-- #1 Row for USer --}}
-        <div class="grid lg:grid-cols-2 gap-5">
-            <div class="bg-white rounded-2xl shadow-xl p-5">
+        <div class="">
+        {{-- <div class="grid lg:grid-cols-2 gap-5"> --}}
+            {{-- <div class="bg-white rounded-2xl shadow-xl p-5">
                 <h3 class="text-xl text-primary-600 font-medium">My Wallet</h3>
                 <div class="mt-5">
                     <a href="#" class="bg-primary-100 p-5 border border-primary-700 text-primary-700 flex items-center gap-5 rounded-lg">
-                    {{-- <a href="{{ route('dashboard.saldo.index') }}" class="bg-primary-100 p-5 border border-primary-700 text-primary-700 flex items-center gap-5 rounded-lg"> --}}
                         <span class="material-symbols-rounded scale-150">wallet</span>
                         <div class="flex flex-col">
                             <p class="text-sm">Saldoku</p>
@@ -283,7 +283,7 @@
                         </div>
                     </a>
                 </div>
-            </div>
+            </div> --}}
 
             @if (isset($user_transaction))
                 @if($user_transaction->payment_status == 'PENDING' )
