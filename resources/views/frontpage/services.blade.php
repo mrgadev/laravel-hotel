@@ -92,7 +92,8 @@
             <a href="{{route('frontpage.services.detail', $service->id)}}" class="flex flex-col gap-5 group">
                 <div class="relative overflow-hidden rounded-xl">
                     @if($service->cover)
-                        <img src="{{Storage::url($service->cover)}}" alt="{{ $service->name }}" 
+                        <img src="https://unsinnsolo.co.id/wp-content/uploads/2024/12/Madukara-Room_1_11zon-scaled.jpg" 
+                        {{-- <img src="{{Storage::url($service->cover)}}" alt="{{ $service->name }}"  --}}
                              class="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
                              onerror="this.onerror=null; this.src='{{ asset('images/placeholder-service.jpg') }}';">
                     @else
