@@ -288,7 +288,7 @@
     </div>
     <div class="grid xl:grid-cols-2 gap-5 my-11">
         {{-- <img src="https://via.placeholder.com/600x400?text=Service+Image" alt=""> --}}
-        <img src="{{ $frontpage_site_setting && $frontpage_site_setting->service_image ? url($frontpage_site_setting->service_image) : 'https://via.placeholder.com/600x400?text=Service+Image' }}" alt="">
+        <img src="{{ $frontpage_site_setting && $frontpage_site_setting->service_image ? url($frontpage_site_setting->service_image) : 'https://via.placeholder.com/600x400?text=Service+Image' }}" class="lg:w-1/2" alt="">
         <div class="flex flex-col gap-8">
             @if($hotel_services && count($hotel_services) > 0)
                 @foreach ($hotel_services as $hotel_service)
@@ -456,7 +456,7 @@
     </div>
 
     <div class="grid xl:grid-cols-2 gap-5 mt-10">
-        <img src="{{ $frontpage_site_setting && $frontpage_site_setting->faq_illustration ? url($frontpage_site_setting->faq_illustration) : 'https://via.placeholder.com/600x400?text=FAQ+Illustration' }}" alt="">
+        <img src="{{ $frontpage_site_setting && $frontpage_site_setting->faq_illustration ? url($frontpage_site_setting->faq_illustration) : 'https://via.placeholder.com/600x400?text=FAQ+Illustration' }}" class="lg:w-1/2" alt="">
         <div>
             @if($faqs && count($faqs) > 0)
                 @foreach($faqs as $faq)
