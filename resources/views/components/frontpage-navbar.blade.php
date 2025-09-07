@@ -1,6 +1,6 @@
 <nav class="fixed w-full px-12 lg:px-36 z-20 bg-white border-b border-primary-300 duration-500 transition-all flex items-center justify-between py-6 text-primary-500">
 {{-- <nav class="fixed w-full px-12 lg:px-36 z-20 bg-white border-b border-primary-300 duration-500 transition-all flex items-center justify-between py-6 text-primary-500" id="mainNavbar"> --}}
-    <a href="{{route('frontpage.index')}}" class="text-lg font-medium">UNS Inn Hotel</a>
+    <a href="{{route('frontpage.index')}}" class="text-lg font-medium"><img src="{{assets('assets/img/Logo-Inn-UNS-White.svg')}}" alt=""></a>
     <div class="lg:flex gap-8 font-light hidden">
         <a href="{{route('frontpage.index')}}" class="hover:font-medium {{(Route::is('frontpage.index') ? 'font-medium' : '')}}">Beranda</a>
         <a href="{{route('frontpage.rooms')}}" class="hover:font-medium {{(Route::is('frontpage.rooms') ? 'font-medium' : '')}}">Kamar</a>

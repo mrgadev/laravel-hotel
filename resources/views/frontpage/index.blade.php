@@ -52,9 +52,11 @@
     }
 
     header {
-        background: url('https://unsinnsolo.co.id/wp-content/uploads/2024/12/Resto1_11zon-scaled.jpg');
-        background-size: cover;
-        //background: url({{ $frontpage_site_setting && $frontpage_site_setting->hero_cover ? url($frontpage_site_setting->hero_cover) : '' }});
+        background: 
+            linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), /* overlay gelap */
+            url('https://unsinnsolo.co.id/wp-content/uploads/2024/12/Resto1_11zon-scaled.jpg');
+        background-size: cover; /* bisa ganti contain jadi cover supaya full */
+        background-position: center;
     }
 
     .cta-card {
@@ -77,8 +79,9 @@
 @section('title', 'Beranda')
 @section('main')
 <header class="xl:px-36 px-12 bg-fixed relative w-screen h-screen">
-    <nav class=" duration-500 transition-all flex items-center justify-between py-6 text-white" id="mainNavbar">
-        <a href="{{route('frontpage.index')}}"  class="text-lg font-medium">UNS Inn Hotel</a>
+    <nav class=" duration-500 transition-all flex items-center justify-between py-6 text-white">
+    {{-- <nav class=" duration-500 transition-all flex items-center justify-between py-6 text-white" id="mainNavbar"> --}}
+        <a href="{{route('frontpage.index')}}"  class="text-lg font-medium"><img src="{{asset('assets/img/Logo-Inn-UNS-White.svg')}}" class="w-16" alt=""></a>
         <div class="xl:flex gap-8 font-light hidden">
             <a href="{{route('frontpage.index')}}" class="hover:font-medium {{(Route::is('frontpage.index') ? 'font-medium' : '')}}">Beranda</a>
             <a href="{{route('frontpage.rooms')}}" class="hover:font-medium {{(Route::is('frontpage.rooms') ? 'font-medium' : '')}}">Kamar</a>
@@ -130,7 +133,7 @@
     </nav>
     <nav class="duration-500 bg-white w-screen h-screen fixed hidden top-0 left-0 right-0 z-10 px-12" id="mobileMenu">
         <div class="flex items-center justify-between py-6 text-primary-500">
-            <a href="{{route('frontpage.index')}}"  class="text-lg font-medium">UNS Inn Hotel</a>
+            <a href="{{route('frontpage.index')}}"  class="text-lg font-medium"><img src="{{asset('assets/img/Logo-Inn-UNS-White.svg')}}" alt=""></a>
             <span class="material-symbols-rounded" id="closeMobileMenu">close</span>
         </div>
 
@@ -377,6 +380,7 @@
 </div>
 
 {{-- Testimonial Section --}}
+{{-- Testimonial Section --}}
 <div class="px-12 xl:px-36 my-16">
     <div class="flex flex-col lg:flex-row items-center justify-between">
         <div class="flex flex-col gap-1">
@@ -385,38 +389,160 @@
                 {{ $frontpage_site_setting && $frontpage_site_setting->testimonial_title ? $frontpage_site_setting->testimonial_title : 'Apa Kata Tamu Kami' }}
             </h2>
         </div>
+        <div class="flex items-center gap-2 mt-4 lg:mt-0">
+            <button id="prevTestimonial" class="p-2 rounded-full bg-primary-100 text-primary-700 hover:bg-primary-500 hover:text-white transition-all">
+                <span class="material-icons-round">chevron_left</span>
+            </button>
+            <button id="nextTestimonial" class="p-2 rounded-full bg-primary-100 text-primary-700 hover:bg-primary-500 hover:text-white transition-all">
+                <span class="material-icons-round">chevron_right</span>
+            </button>
+        </div>
     </div>
 
-    <div class="mt-10 grid xl:grid-cols-4 gap-5">
-        <div id="testimonialSlider" class="relative">
-            @if($room_reviews && count($room_reviews) > 0)
-                @foreach ($room_reviews as $room_review)
-                <div class="flex flex-col gap-5 rounded-lg border border-primary-500 p-5 transition-all testimonial-content hover:shadow-xl">
-                    <h3 class="font-medium text-primary-700 text-xl">{{ $room_review->title ?? 'Review' }}</h3>
-                    <div class="text-sm text-primary-800">{!! $room_review->description ?? 'Pengalaman yang luar biasa' !!}</div>
-                    <div class="flex items-center gap-3">
-                        @if($room_review->user && $room_review->user->avatar)
-                            <img src="{{url($room_review->user->avatar)}}" class="w-14 h-14 rounded-full object-cover object-center" alt="">
-                        @else
-                            <div class="w-14 h-14 rounded-full bg-primary-200 flex items-center justify-center">
-                                <span class="material-symbols-rounded text-primary-700">person</span>
-                            </div>
-                        @endif
-                        <div class="flex flex-col">
-                            <p class="font-medium text-primary-700">{{ $room_review->user ? $room_review->user->name : 'Tamu' }}</p>
-                            <p class="text-sm flex items-center gap-1 text-primary-500">
-                                <i class="bi bi-star-fill"></i>{{ $room_review->rating ?? '5' }} ({{ $room_review->rating_text ?? 'Sangat Baik' }})
-                            </p>
-                        </div>
+    <div class="mt-10 overflow-hidden">
+        <div id="testimonialContainer" class="flex gap-5 transition-transform duration-500 cursor-grab select-none" style="width: calc(400px * 6 + 20px * 5);">
+            {{-- Testimonial 1 --}}
+            <div class="flex-shrink-0 w-96 flex flex-col gap-5 rounded-lg border border-primary-500 p-5 transition-all hover:shadow-xl bg-white">
+                <div class="flex items-center gap-1 mb-2">
+                    @for($i = 1; $i <= 5; $i++)
+                        <i class="bi bi-star-fill text-yellow-500"></i>
+                    @endfor
+                </div>
+                <h3 class="font-medium text-primary-700 text-xl">Pelayanan Luar Biasa!</h3>
+                <div class="text-sm text-primary-800">
+                    "Hotel ini benar-benar memberikan pengalaman menginap yang tak terlupakan. Staff sangat ramah dan profesional, kamar bersih dan nyaman, serta fasilitas yang lengkap. Sangat merekomendasikan untuk teman dan keluarga!"
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                        <span class="text-white font-semibold text-lg">AS</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <p class="font-medium text-primary-700">Ahmad Santoso</p>
+                        <p class="text-sm text-primary-500">Pengusaha</p>
                     </div>
                 </div>
-                @endforeach
-            @else
-                <div class="col-span-full text-center py-10">
-                    <p class="text-gray-500">Belum ada review tersedia</p>
+            </div>
+
+            {{-- Testimonial 2 --}}
+            <div class="flex-shrink-0 w-96 flex flex-col gap-5 rounded-lg border border-primary-500 p-5 transition-all hover:shadow-xl bg-white">
+                <div class="flex items-center gap-1 mb-2">
+                    @for($i = 1; $i <= 5; $i++)
+                        <i class="bi bi-star-fill text-yellow-500"></i>
+                    @endfor
                 </div>
-            @endif
+                <h3 class="font-medium text-primary-700 text-xl">Lokasi Strategis</h3>
+                <div class="text-sm text-primary-800">
+                    "Lokasi hotel sangat strategis, dekat dengan berbagai tempat wisata dan pusat perbelanjaan. Kamar yang luas dan bersih, sarapan yang beragam dan lezat. Pasti akan menginap lagi di sini!"
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center">
+                        <span class="text-white font-semibold text-lg">SR</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <p class="font-medium text-primary-700">Sari Rahayu</p>
+                        <p class="text-sm text-primary-500">Travel Blogger</p>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Testimonial 3 --}}
+            <div class="flex-shrink-0 w-96 flex flex-col gap-5 rounded-lg border border-primary-500 p-5 transition-all hover:shadow-xl bg-white">
+                <div class="flex items-center gap-1 mb-2">
+                    @for($i = 1; $i <= 4; $i++)
+                        <i class="bi bi-star-fill text-yellow-500"></i>
+                    @endfor
+                    <i class="bi bi-star text-yellow-500"></i>
+                </div>
+                <h3 class="font-medium text-primary-700 text-xl">Perfect untuk Keluarga</h3>
+                <div class="text-sm text-primary-800">
+                    "Hotel ini sangat cocok untuk liburan keluarga. Anak-anak senang dengan fasilitas kolam renang dan area bermain. Kamar family suite nya luas dan nyaman. Staff juga sangat membantu dengan kebutuhan anak-anak."
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+                        <span class="text-white font-semibold text-lg">BP</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <p class="font-medium text-primary-700">Budi Prasetyo</p>
+                        <p class="text-sm text-primary-500">Ayah dari 2 anak</p>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Testimonial 4 --}}
+            <div class="flex-shrink-0 w-96 flex flex-col gap-5 rounded-lg border border-primary-500 p-5 transition-all hover:shadow-xl bg-white">
+                <div class="flex items-center gap-1 mb-2">
+                    @for($i = 1; $i <= 5; $i++)
+                        <i class="bi bi-star-fill text-yellow-500"></i>
+                    @endfor
+                </div>
+                <h3 class="font-medium text-primary-700 text-xl">Fasilitas Lengkap</h3>
+                <div class="text-sm text-primary-800">
+                    "Fasilitas hotel sangat lengkap, mulai dari gym, spa, hingga restoran dengan menu yang lezat. Kamar executive suite sangat mewah dengan pemandangan kota yang menawan. Value for money yang sangat baik!"
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
+                        <span class="text-white font-semibold text-lg">DF</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <p class="font-medium text-primary-700">Dewi Fortuna</p>
+                        <p class="text-sm text-primary-500">Manager</p>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Testimonial 5 --}}
+            <div class="flex-shrink-0 w-96 flex flex-col gap-5 rounded-lg border border-primary-500 p-5 transition-all hover:shadow-xl bg-white">
+                <div class="flex items-center gap-1 mb-2">
+                    @for($i = 1; $i <= 5; $i++)
+                        <i class="bi bi-star-fill text-yellow-500"></i>
+                    @endfor
+                </div>
+                <h3 class="font-medium text-primary-700 text-xl">Pengalaman Business Trip Terbaik</h3>
+                <div class="text-sm text-primary-800">
+                    "Hotel ini menjadi pilihan utama saya untuk business trip. WiFi cepat, meeting room yang modern, dan business center yang lengkap. Lokasi juga strategis dekat dengan kawasan bisnis. Highly recommended!"
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-14 h-14 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+                        <span class="text-white font-semibold text-lg">RK</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <p class="font-medium text-primary-700">Rian Kurnia</p>
+                        <p class="text-sm text-primary-500">Business Consultant</p>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Testimonial 6 --}}
+            <div class="flex-shrink-0 w-96 flex flex-col gap-5 rounded-lg border border-primary-500 p-5 transition-all hover:shadow-xl bg-white">
+                <div class="flex items-center gap-1 mb-2">
+                    @for($i = 1; $i <= 4; $i++)
+                        <i class="bi bi-star-fill text-yellow-500"></i>
+                    @endfor
+                    <i class="bi bi-star text-yellow-500"></i>
+                </div>
+                <h3 class="font-medium text-primary-700 text-xl">Honeymoon yang Romantis</h3>
+                <div class="text-sm text-primary-800">
+                    "Kami memilih hotel ini untuk bulan madu dan tidak menyesal! Kamar deluxe dengan jacuzzi pribadi sangat romantis. Service excellent, makanan enak, dan view sunset dari balkon kamar sangat indah. Terima kasih!"
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-14 h-14 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center">
+                        <span class="text-white font-semibold text-lg">MA</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <p class="font-medium text-primary-700">Maya & Andi</p>
+                        <p class="text-sm text-primary-500">Pengantin Baru</p>
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
+
+    {{-- Navigation dots --}}
+    <div class="flex items-center justify-center gap-2 mt-6">
+        <div class="testimonial-dot w-3 h-3 rounded-full bg-primary-500 cursor-pointer" data-index="0"></div>
+        <div class="testimonial-dot w-3 h-3 rounded-full bg-primary-200 cursor-pointer" data-index="1"></div>
+        <div class="testimonial-dot w-3 h-3 rounded-full bg-primary-200 cursor-pointer" data-index="2"></div>
+        <div class="testimonial-dot w-3 h-3 rounded-full bg-primary-200 cursor-pointer" data-index="3"></div>
     </div>
 </div>
 
@@ -641,5 +767,191 @@
                 }
             }
         });
+        </script>
+        <script>
+            // Testimonial Slider dengan drag functionality
+            document.addEventListener('DOMContentLoaded', function() {
+                const container = document.getElementById('testimonialContainer');
+                const prevBtn = document.getElementById('prevTestimonial');
+                const nextBtn = document.getElementById('nextTestimonial');
+                const dots = document.querySelectorAll('.testimonial-dot');
+                
+                if (!container) return;
+
+                let currentIndex = 0;
+                const totalSlides = 4; // Menampilkan 4 set (6 cards dibagi dalam 4 slide)
+                const slideWidth = 420; // 400px card width + 20px gap
+                const cardsPerSlide = window.innerWidth >= 1280 ? 3 : window.innerWidth >= 768 ? 2 : 1;
+                
+                let isDown = false;
+                let startX = 0;
+                let scrollLeft = 0;
+                let isDragging = false;
+
+                // Mouse drag functionality
+                container.addEventListener('mousedown', (e) => {
+                    isDown = true;
+                    container.classList.add('cursor-grabbing');
+                    container.classList.remove('cursor-grab');
+                    startX = e.pageX - container.offsetLeft;
+                    scrollLeft = container.scrollLeft;
+                    isDragging = false;
+                });
+
+                container.addEventListener('mouseleave', () => {
+                    isDown = false;
+                    container.classList.remove('cursor-grabbing');
+                    container.classList.add('cursor-grab');
+                });
+
+                container.addEventListener('mouseup', () => {
+                    isDown = false;
+                    container.classList.remove('cursor-grabbing');
+                    container.classList.add('cursor-grab');
+                    
+                    // Snap to closest slide after drag
+                    if (isDragging) {
+                        const dragDistance = Math.abs(container.scrollLeft - scrollLeft);
+                        if (dragDistance > 50) {
+                            const direction = container.scrollLeft > scrollLeft ? 1 : -1;
+                            currentIndex = Math.max(0, Math.min(totalSlides - 1, currentIndex + direction));
+                            updateSlider();
+                        }
+                        isDragging = false;
+                    }
+                });
+
+                container.addEventListener('mousemove', (e) => {
+                    if (!isDown) return;
+                    e.preventDefault();
+                    isDragging = true;
+                    const x = e.pageX - container.offsetLeft;
+                    const walk = (x - startX) * 2;
+                    container.scrollLeft = scrollLeft - walk;
+                });
+
+                // Touch events for mobile
+                container.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].pageX - container.offsetLeft;
+                    scrollLeft = container.scrollLeft;
+                    isDragging = false;
+                });
+
+                container.addEventListener('touchmove', (e) => {
+                    if (!startX) return;
+                    isDragging = true;
+                    const x = e.touches[0].pageX - container.offsetLeft;
+                    const walk = (x - startX) * 2;
+                    container.scrollLeft = scrollLeft - walk;
+                });
+
+                container.addEventListener('touchend', () => {
+                    if (isDragging) {
+                        const dragDistance = Math.abs(container.scrollLeft - scrollLeft);
+                        if (dragDistance > 50) {
+                            const direction = container.scrollLeft > scrollLeft ? 1 : -1;
+                            currentIndex = Math.max(0, Math.min(totalSlides - 1, currentIndex + direction));
+                            updateSlider();
+                        }
+                    }
+                    startX = 0;
+                    isDragging = false;
+                });
+
+                // Button navigation
+                if (prevBtn) {
+                    prevBtn.addEventListener('click', () => {
+                        currentIndex = Math.max(0, currentIndex - 1);
+                        updateSlider();
+                    });
+                }
+
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', () => {
+                        currentIndex = Math.min(totalSlides - 1, currentIndex + 1);
+                        updateSlider();
+                    });
+                }
+
+                // Dot navigation
+                dots.forEach((dot, index) => {
+                    dot.addEventListener('click', () => {
+                        currentIndex = index;
+                        updateSlider();
+                    });
+                });
+
+                function updateSlider() {
+                    const translateX = -currentIndex * slideWidth * cardsPerSlide;
+                    container.style.transform = `translateX(${translateX}px)`;
+                    
+                    // Update dots
+                    dots.forEach((dot, index) => {
+                        if (index === currentIndex) {
+                            dot.classList.add('bg-primary-500');
+                            dot.classList.remove('bg-primary-200');
+                        } else {
+                            dot.classList.add('bg-primary-200');
+                            dot.classList.remove('bg-primary-500');
+                        }
+                    });
+
+                    // Update button states
+                    if (prevBtn) {
+                        prevBtn.disabled = currentIndex === 0;
+                        if (currentIndex === 0) {
+                            prevBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                        } else {
+                            prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        }
+                    }
+
+                    if (nextBtn) {
+                        nextBtn.disabled = currentIndex === totalSlides - 1;
+                        if (currentIndex === totalSlides - 1) {
+                            nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                        } else {
+                            nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        }
+                    }
+                }
+
+                // Auto-play functionality
+                let autoPlayInterval = setInterval(() => {
+                    if (currentIndex < totalSlides - 1) {
+                        currentIndex++;
+                    } else {
+                        currentIndex = 0;
+                    }
+                    updateSlider();
+                }, 5000);
+
+                // Pause auto-play on hover
+                container.addEventListener('mouseenter', () => {
+                    clearInterval(autoPlayInterval);
+                });
+
+                container.addEventListener('mouseleave', () => {
+                    autoPlayInterval = setInterval(() => {
+                        if (currentIndex < totalSlides - 1) {
+                            currentIndex++;
+                        } else {
+                            currentIndex = 0;
+                        }
+                        updateSlider();
+                    }, 5000);
+                });
+
+                // Initialize
+                updateSlider();
+
+                // Responsive handling
+                window.addEventListener('resize', () => {
+                    const newCardsPerSlide = window.innerWidth >= 1280 ? 3 : window.innerWidth >= 768 ? 2 : 1;
+                    if (newCardsPerSlide !== cardsPerSlide) {
+                        location.reload(); // Simple solution for responsive changes
+                    }
+                });
+            });
         </script>
 @endpush
