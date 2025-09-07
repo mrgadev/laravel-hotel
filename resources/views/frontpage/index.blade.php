@@ -572,7 +572,7 @@
         </p>
     </div>
 
-    <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-8 my-10">
+    <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-8 my-10">
         @if($hotel_awards && count($hotel_awards) > 0)
             @foreach ($hotel_awards as $hotel_award)
             <div class="flex items-center gap-3">
