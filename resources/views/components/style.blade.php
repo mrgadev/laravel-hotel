@@ -60,4 +60,4 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="./assets/vendor/jquery/dist/jquery.min.js"></script>
 <script src="./assets/vendor/datatables.net/js/dataTables.min.js"></script>
-@vite(['resources/css/app.css','resources/css/app.js'])
+@vite(['resources/css/app.css','resources/js/app.js'])
