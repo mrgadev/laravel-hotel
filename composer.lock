@@ -2954,7 +2954,7 @@
         },
         {
             "name": "openspout/openspout",
-            "version": "v4.32.0",
+            "version": "v4.22.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/openspout/openspout.git",
@@ -4472,7 +4472,7 @@
             },
             "require": {
                 "illuminate/support": "^9.0|^10.0|^11.0|^12.0",
-                "openspout/openspout": "^4.30",
+                "openspout/openspout": "^4.22",
                 "php": "^8.3"
             },
             "require-dev": {
