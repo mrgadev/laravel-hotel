@@ -16,6 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'payment/xendit/webhook',
+            'payment/xendit/*',
+            '/payment/xendit/webhook',
+            '/payment/xendit/*'
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

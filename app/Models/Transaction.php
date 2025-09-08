@@ -39,12 +39,18 @@ class Transaction extends Model
         'ipaymu_transaction_id',
         'ipaymu_session_id',
         'ipaymu_response',
-        'ipaymu_expired_date'
+        'ipaymu_expired_date',
+        'xendit_invoice_id',
+        'paid_at',
+        'xendit_response'
     ];
 
     protected $casts = [
         'ipaymu_response' => 'array',
         'ipaymu_expired_date' => 'datetime',
+        'xendit_response' => 'array',
+        'xendit_invoice_id' => 'string',
+        'paid_at' => 'datetime',
         'check_in' => 'date',
         'check_out' => 'date',
         'checkin_date' => 'datetime',
@@ -156,6 +162,7 @@ class Transaction extends Model
     /**
      * Get the payment method display name for iPaymu
      */
+    
     public function getPaymentMethodDisplayAttribute()
     {
         $methodNames = [
@@ -164,12 +171,14 @@ class Transaction extends Model
             'banktransfer' => 'Bank Transfer',
             'cstore' => 'Convenience Store',
             'cod' => 'Cash on Delivery',
-            'cc' => 'Credit Card'
+            'cc' => 'Credit Card',
+            'xendit' => 'Xendit Payment'
         ];
         
-        return $methodNames[$this->payment_method] ?? $this->payment_method;
+        return $methodNames[$this->payment_method] ?? ucfirst($this->payment_method);
     }
 
+    
     /**
      * Get payment method icon for iPaymu methods
      */
@@ -274,5 +283,11 @@ class Transaction extends Model
     public function getFormattedCheckOutAttribute()
     {
         return $this->check_out->isoFormat('dddd, D MMM Y');
+    }
+
+
+    public function isXenditPayment()
+    {
+        return $this->payment_method === 'xendit';
     }
 }

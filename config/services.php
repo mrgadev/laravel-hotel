@@ -47,4 +47,9 @@ return [
         'is_production' => env('IPAYMU_IS_PRODUCTION', false),
     ],
 
+    'xendit' => [
+        'secret_key' => env('XENDIT_SECRET_KEY'),
+        'callback_token' => env('XENDIT_CALLBACK_TOKEN')
+    ],
+
 ];

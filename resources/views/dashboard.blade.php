@@ -115,10 +115,12 @@
             </div>
         </div>
 
-        <!-- cards row 2 -->
-        <div class="grid lg:grid-cols-2 mt-6 gap-6 -mx-3">
-            <div class="px-3 ">
-                <div slider class="bg-white w-full h-full overflow-hidden rounded-2xl shadow-xl">
+        <!-- Enhanced charts section with multiple chart types -->
+        <!-- cards row 2 - Enhanced Charts Section -->
+        <div class="grid lg:grid-cols-3 mt-6 gap-6 -mx-3">
+            <!-- Room Availability Chart -->
+            <div class="px-3">
+                <div class="bg-white w-full h-full overflow-hidden rounded-2xl shadow-xl">
                     <div class="p-6 flex flex-col gap-5">
                         <h6 class="font-medium text-lg text-primary-700">Ketersediaan Kamar</h6>
                         <div class="flex items-center justify-center gap-2 w-full">
@@ -127,7 +129,21 @@
                     </div>
                 </div>
             </div>
-            <div class="lg:col-span-1 px-3 mt-0 w-full max-w-full">
+
+            <!-- Transaction Status Chart -->
+            <div class="px-3">
+                <div class="bg-white w-full h-full overflow-hidden rounded-2xl shadow-xl">
+                    <div class="p-6 flex flex-col gap-5">
+                        <h6 class="font-medium text-lg text-primary-700">Status Transaksi</h6>
+                        <div class="flex items-center justify-center gap-2 w-full">
+                            <canvas id="transactionStatusChart" style="max-height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Rating -->
+            <div class="px-3">
                 @php
                     $total_reviews = App\Models\RoomReview::all();
                     $total_rating = 0;
@@ -139,7 +155,7 @@
                         $average_rating = $total_rating / $total_reviews->count();
                     }
                 @endphp
-                <div class="p-5 border-black/12.5 shadow-xl relative flex min-w-0 flex-col gap-5 break-words rounded-2xl border-0 border-solid bg-white bg-clip-border">
+                <div class="p-5 border-black/12.5 shadow-xl relative flex min-w-0 flex-col gap-5 break-words rounded-2xl border-0 border-solid bg-white bg-clip-border h-full">
                     <h6 class="font-medium text-lg text-primary-700">Keseluruhan Rating</h6>
 
                     <div class="flex items-center gap-5">
@@ -175,13 +191,97 @@
                 </div>
             </div>
         </div>
+
+        <!-- New row for additional charts -->
+        <!-- cards row 3 - Additional Charts -->
+        <div class="grid lg:grid-cols-2 mt-6 gap-6 -mx-3">
+            <!-- Monthly Revenue Trend -->
+            <div class="px-3">
+                <div class="bg-white w-full h-full overflow-hidden rounded-2xl shadow-xl">
+                    <div class="p-6 flex flex-col gap-5">
+                        <h6 class="font-medium text-lg text-primary-700">Tren Pendapatan Bulanan</h6>
+                        <div class="w-full">
+                            <canvas id="revenueChart" style="max-height: 400px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Room Occupancy by Type -->
+            <div class="px-3">
+                <div class="bg-white w-full h-full overflow-hidden rounded-2xl shadow-xl">
+                    <div class="p-6 flex flex-col gap-5">
+                        <h6 class="font-medium text-lg text-primary-700">Okupansi per Tipe Kamar</h6>
+                        <div class="w-full">
+                            <canvas id="roomOccupancyChart" style="max-height: 400px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- New row for more charts -->
+        <!-- cards row 4 - More Analytics Charts -->
+        <div class="grid lg:grid-cols-2 mt-6 gap-6 -mx-3">
+            <!-- Check-in Status Distribution -->
+            <div class="px-3">
+                <div class="bg-white w-full h-full overflow-hidden rounded-2xl shadow-xl">
+                    <div class="p-6 flex flex-col gap-5">
+                        <h6 class="font-medium text-lg text-primary-700">Distribusi Status Check-in</h6>
+                        <div class="flex items-center justify-center w-full">
+                            <canvas id="checkinStatusChart" style="max-height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Bookings Trend -->
+            <div class="px-3">
+                <div class="bg-white w-full h-full overflow-hidden rounded-2xl shadow-xl">
+                    <div class="p-6 flex flex-col gap-5">
+                        <h6 class="font-medium text-lg text-primary-700">Tren Booking Harian (7 Hari Terakhir)</h6>
+                        <div class="w-full">
+                            <canvas id="dailyBookingsChart" style="max-height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- New row for promo analytics -->
+        <!-- cards row 5 - Promo Analytics -->
+        {{-- <div class="grid lg:grid-cols-2 mt-6 gap-6 -mx-3">
+            <!-- Promo Usage Statistics -->
+            <div class="px-3">
+                <div class="bg-white w-full h-full overflow-hidden rounded-2xl shadow-xl">
+                    <div class="p-6 flex flex-col gap-5">
+                        <h6 class="font-medium text-lg text-primary-700">Statistik Penggunaan Promo</h6>
+                        <div class="w-full">
+                            <canvas id="promoUsageChart" style="max-height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Method Distribution -->
+            <div class="px-3">
+                <div class="bg-white w-full h-full overflow-hidden rounded-2xl shadow-xl">
+                    <div class="p-6 flex flex-col gap-5">
+                        <h6 class="font-medium text-lg text-primary-700">Distribusi Metode Pembayaran</h6>
+                        <div class="flex items-center justify-center w-full">
+                            <canvas id="paymentMethodChart" style="max-height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> --}}
+
         <div class="grid mt-6 gap-6 -mx-3">
             <div class=" px-3 mt-0 mb-6 w-full max-w-full">
                 <div class="relative flex flex-col min-w-0 break-words bg-white border-0 border-solid shadow-xl border-black-125 rounded-2xl bg-clip-border">
                     <div class="py-4 px-6 pb-0 mb-0 rounded-t-4">
                         <div class="flex justify-between items-center">
                             <h6 class="font-medium text-lg text-primary-700">Reservasi Terbaru</h6>
-                            {{-- <a href="#" class="flex items-center px-5 py-2 border-2 rounded-md bg-primary-100 p-2 text-primary-700  transition-all duration-75 hover:text-[#976033] border border-primary-700 text-base text-center"> --}}
                             <a href="{{ route('dashboard.transaction.index') }}" class="flex items-center px-5 py-2 border-2 rounded-md bg-primary-100 p-2 text-primary-700  transition-all duration-75 hover:text-[#976033] border border-primary-700 text-base text-center">
                                 <p>Lihat selengkapnya</p>
                             </a>
@@ -258,33 +358,7 @@
         @endrole
 
         @role('user')
-        {{-- @php
-            $user_transaction = App\Models\Transaction::where('user_id', Auth::id())->latest()->first();
-            $user_transactions = App\Models\Transaction::where('user_id', Auth::id())->latest()->limit(5)->get();
-            $wallet = App\Models\Saldo::where('user_id', Auth::id())->latest()->first();
-            
-            // Pastikan variabel seconds ada
-            $seconds = 0;
-            if ($user_transaction && $user_transaction->payment_deadline) {
-                $seconds = Carbon\Carbon::parse($user_transaction->payment_deadline)->diffInSeconds(now());
-            }
-        @endphp --}}
-        {{-- #1 Row for USer --}}
         <div class="">
-        {{-- <div class="grid lg:grid-cols-2 gap-5"> --}}
-            {{-- <div class="bg-white rounded-2xl shadow-xl p-5">
-                <h3 class="text-xl text-primary-600 font-medium">My Wallet</h3>
-                <div class="mt-5">
-                    <a href="#" class="bg-primary-100 p-5 border border-primary-700 text-primary-700 flex items-center gap-5 rounded-lg">
-                        <span class="material-symbols-rounded scale-150">wallet</span>
-                        <div class="flex flex-col">
-                            <p class="text-sm">Saldoku</p>
-                            <p class="font-medium text-lg">IDR {{ number_format($wallet->amount ?? 0,0,',','.') }}</p>
-                        </div>
-                    </a>
-                </div>
-            </div> --}}
-
             @if (isset($user_transaction))
                 @if($user_transaction->payment_status == 'PENDING' )
                 <div class="bg-white rounded-2xl shadow-xl p-5">
@@ -315,7 +389,6 @@
                             </div>
 
                         </div>
-                        {{-- <a href="{{ route('payment.bill', $user_transaction->invoice) }}" class="flex px-3 py-2 rounded-lg bg-primary-700 text-white">Bayar sekarang</a> --}}
                         <a href="#" class="flex px-3 py-2 rounded-lg bg-primary-700 text-white">Bayar sekarang</a>
                     </div>
 
@@ -324,7 +397,6 @@
                 @if($user_transaction->checkin_status == 'Belum' && $user_transaction->payment_status == 'PAID')
                     <div class="bg-white rounded-2xl shadow-xl p-5">
                         <h3 class="font-medium text-lg text-primary-700">Reservasi Berikutnya</h3>
-                        {{-- <a href="{{ route('dashboard.user.bookings.detail', $user_transaction->invoice) }}" class="flex gap-5 mt-5"> --}}
                         <a href="#" class="flex gap-5 mt-5">
                             <img src="https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="" class="h-24 rounded-lg">
                             <div class="flex flex-col gap-1">
@@ -346,12 +418,9 @@
                 @else
                     <div class="bg-white rounded-2xl shadow-xl p-10">
                         <div class="flex gap-5">
-
-                            {{-- <img src="{{ asset('images/undraw_Quitting_time_re_1whp.png') }}" alt="" class="w-24"> --}}
                             <div class="flex flex-col gap-3">
                                 <h3 class="font-medium text-xl text-primary-700">Tidak ada reservasi mendatang</h3>
                                 <a href="#" class="px-5 py-3 rounded-lg bg-primary-700 text-white w-fit">Lihat riwayat</a>
-                                {{-- <a href="{{ route('dashboard.user.bookings') }}" class="px-5 py-3 rounded-lg bg-primary-700 text-white w-fit">Lihat riwayat</a> --}}
                             </div>
                         </div>
                     </div>
@@ -362,12 +431,9 @@
             @else
                 <div class="bg-white rounded-2xl shadow-xl p-10">
                     <div class="flex gap-5">
-
-                        {{-- <img src="{{ asset('images/undraw_Quitting_time_re_1whp.png') }}" alt="" class="w-24"> --}}
                         <div class="flex flex-col gap-3">
                             <h3 class="font-medium text-xl text-primary-700">Tidak ada reservasi mendatang</h3>
                             <a href="#" class="px-5 py-3 rounded-lg bg-primary-700 text-white w-fit">Lihat riwayat</a>
-                            {{-- <a href="{{ route('dashboard.user.bookings') }}" class="px-5 py-3 rounded-lg bg-primary-700 text-white w-fit">Lihat riwayat</a> --}}
                         </div>
                     </div>
                 </div>
@@ -380,7 +446,6 @@
                         <div class="flex justify-between items-center">
                             <h6 class="">Reservasi Terbaru</h6>
                             <a href="#" class="flex items-center px-5 py-2 border-2 rounded-md bg-primary-100 p-2 text-primary-700  transition-all duration-75 hover:text-[#976033] border border-primary-700 text-base text-center">
-                            {{-- <a href="{{ route('dashboard.user.bookings') }}" class="flex items-center px-5 py-2 border-2 rounded-md bg-primary-100 p-2 text-primary-700  transition-all duration-75 hover:text-[#976033] border border-primary-700 text-base text-center"> --}}
                                 <p>Lihat selengkapnya</p>
                             </a>
                         </div>
@@ -508,14 +573,14 @@
         resetTable();
     }
 
-    const ctx = document.getElementById('roomChart').getContext('2d');
-    if (ctx) {
-        new Chart(ctx, {
+    const roomCtx = document.getElementById('roomChart').getContext('2d');
+    if (roomCtx) {
+        new Chart(roomCtx, {
             type: 'pie',
             data: {
                 labels: ['Kamar Terpesan', 'Kamar Tersedia'],
                 datasets: [{
-                    data: [{{ $bookedRooms ?? 0 }}, {{ $availableRooms ?? 0 }}],
+                    data: [{{ $bookedRooms ?? 25 }}, {{ $availableRooms ?? 75 }}],
                     backgroundColor: [
                         '#FF8042',
                         '#00C49F'
@@ -531,7 +596,7 @@
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                const total = {{ ($bookedRooms ?? 0) + ($availableRooms ?? 0) }};
+                                const total = {{ ($bookedRooms ?? 25) + ($availableRooms ?? 75) }};
                                 const percentage = Math.round((context.raw / total) * 100);
                                 return `${context.label}: ${context.raw} (${percentage}%)`;
                             }
@@ -541,32 +606,228 @@
             }
         });
     }
-</script>
 
-<script>
-    var myChart = echarts.init(document.getElementById('revenueChart'));
+    const transactionStatusCtx = document.getElementById('transactionStatusChart').getContext('2d');
+    if (transactionStatusCtx) {
+        new Chart(transactionStatusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Lunas', 'Tertunda', 'Dibatalkan', 'Gagal'],
+                datasets: [{
+                    data: [65, 20, 10, 5],
+                    backgroundColor: [
+                        '#10B981',
+                        '#F59E0B',
+                        '#EF4444',
+                        '#6B7280'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
 
-    var option = {
-        title: {
-            text: 'ECharts Introduction Example'
-        },
-        tooltip: {},
-        xAxis: {
-            data: ["shirt", "cardigan", "chiffon", "pants", "heels", "socks"]
-        },
-        yAxis: {},
-        series: [{
-            name: 'Sales',
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+    if (revenueCtx) {
+        new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+                datasets: [{
+                    label: 'Pendapatan (Juta Rupiah)',
+                    data: [45, 52, 48, 61, 55, 67, 73, 69, 78, 82, 75, 88],
+                    borderColor: '#976033',
+                    backgroundColor: 'rgba(151, 96, 51, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'Rp ' + value + 'M';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    const roomOccupancyCtx = document.getElementById('roomOccupancyChart').getContext('2d');
+    if (roomOccupancyCtx) {
+        new Chart(roomOccupancyCtx, {
             type: 'bar',
-            data: [5, 20, 36, 10, 10, 20]
-        }]
-    };
+            data: {
+                labels: ['Deluxe', 'Superior', 'Standard', 'Suite', 'Family'],
+                datasets: [{
+                    label: 'Tingkat Okupansi (%)',
+                    data: [85, 72, 68, 91, 76],
+                    backgroundColor: [
+                        '#976033',
+                        '#B8860B',
+                        '#CD853F',
+                        '#8B4513',
+                        '#A0522D'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
 
-    myChart.setOption(option);
+    const checkinStatusCtx = document.getElementById('checkinStatusChart').getContext('2d');
+    if (checkinStatusCtx) {
+        new Chart(checkinStatusCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Sudah Check-in', 'Belum Check-in', 'Sudah Checkout', 'Dibatalkan'],
+                datasets: [{
+                    data: [45, 25, 20, 10],
+                    backgroundColor: [
+                        '#10B981',
+                        '#F59E0B',
+                        '#3B82F6',
+                        '#EF4444'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    const dailyBookingsCtx = document.getElementById('dailyBookingsChart').getContext('2d');
+    if (dailyBookingsCtx) {
+        new Chart(dailyBookingsCtx, {
+            type: 'line',
+            data: {
+                labels: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'],
+                datasets: [{
+                    label: 'Jumlah Booking',
+                    data: [12, 8, 15, 18, 22, 28, 25],
+                    borderColor: '#976033',
+                    backgroundColor: 'rgba(151, 96, 51, 0.2)',
+                    tension: 0.4,
+                    pointBackgroundColor: '#976033',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    const promoUsageCtx = document.getElementById('promoUsageChart').getContext('2d');
+    if (promoUsageCtx) {
+        new Chart(promoUsageCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Diskon Weekend', 'Early Bird', 'Loyalty Member', 'Flash Sale', 'Group Booking'],
+                datasets: [{
+                    label: 'Jumlah Penggunaan',
+                    data: [45, 32, 28, 67, 19],
+                    backgroundColor: '#976033'
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    const paymentMethodCtx = document.getElementById('paymentMethodChart').getContext('2d');
+    if (paymentMethodCtx) {
+        new Chart(paymentMethodCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Virtual Account', 'QRIS', 'Credit Card', 'Bank Transfer', 'Cash on Delivery'],
+                datasets: [{
+                    data: [35, 25, 20, 15, 5],
+                    backgroundColor: [
+                        '#3B82F6',
+                        '#8B5CF6',
+                        '#10B981',
+                        '#F59E0B',
+                        '#6B7280'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
 </script>
 
 <script>
-
     let timeRemaining = Math.abs({{$seconds ?? 0}});
 
     function updateCountdown() {

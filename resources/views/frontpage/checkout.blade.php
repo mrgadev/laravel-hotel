@@ -327,17 +327,17 @@
                         </div>
                     @endauth
                     --}}
-                </div>
-            </div>
+                {{-- </div>
+            </div> --}}
 
             <div class="space-y-3 p-5">
                 <button type="submit" id="payment-button" class="hidden flex w-full items-center bg-[#5b3a1f] justify-center rounded-lg px-5 py-2.5 text-sm font-medium text-white" style="background-color: #5b3a1f">
                     Proceed to Payment
                 </button>
-                <p class="text-sm font-normal text-gray-500 pb-5">
+                {{-- <p class="text-sm font-normal text-gray-500 pb-5">
                     One or more items in your cart require an account.
                     <a href="#" title="" class="font-medium text-primary-700 underline hover:no-underline">Sign in or create an account now.</a>.
-                </p>
+                </p> --}}
             </div>
         </div>
     </div>

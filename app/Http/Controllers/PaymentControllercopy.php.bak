@@ -2,60 +2,185 @@
 
 namespace App\Http\Controllers;
 
-
-// use Xendit\/Invoice;
+// use Flip SDK atau HTTP Client
 use Carbon\Carbon;
 use App\Models\Room;
 use App\Models\Saldo;
 use App\Traits\Fonnte;
-use Xendit\Configuration;
-use Xendit\Payout\Payout;
 use App\Models\Transaction;
-use Xendit\Invoice\Invoice;
 use App\Models\SiteSettings;
+use App\Services\IPaymuService;
 use Illuminate\Http\Request;
-use Xendit\Invoice\InvoiceApi;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Xendit\Invoice\CreateInvoiceRequest;
-use Xendit\BalanceAndTransaction\TransactionApi;
-use Xendit\PaymentRequest\PaymentRequestParameters;
 
 class PaymentController extends Controller
 {
     use Fonnte;
     private $site_settings;
-    // Buat construct untuk mendapatkan token Xendit
+    private $flip_secret_key;
+    
     public function __construct() {
-        // Configuration::setXenditKey(env('XENDIT_SECRET_KEY'));
-        Configuration::setXenditKey(config('services.xendit.secret_key'));
         $this->site_settings = SiteSettings::where('id', 1)->first();
-        // Configuration::setXenditKey("xnd_development_GXTQuLgR0APNfJKZZg74MoXTrzueUJEKIlRCHb411Jr8H7lgQixMNN7olF9JkVHy");
-        // Xendit::setApiKey(env('XENDIT_SECRET_KEY'));
+        $this->flip_secret_key = config('services.flip.secret_key');
     }
 
-    // Method untuk payment dengan Xendit
-    public function onlinePayment(Request $request)
+     /**
+    * Method untuk mengupdate addIPaymu yang sudah dibuat sebelumnya
+    * Sekarang dapat digunakan untuk AJAX calls
+    */
+    public function addIPaymu(Request $request)
     {
         try {
-            $data = $request->validate([
-                'user_id' => 'nullable|exists:users,id',
-                'name' => 'required',
-                'email' => 'required|email',
-                'phone' => 'required',
-                'room_id' => 'required|exists:rooms,id',
-                'check_in' => 'required',
-                'check_out' => 'required',
-                'accomodation_plan_id' => 'nullable|array',
-                'accomodation_plan_id.*' => 'exists:accomodation_plans,id',
-                'promo_id' => 'nullable|array',
-                'promo_id.*' => 'exists:promos,id',
+            $request->validate([
+                'transaction_id' => 'required|exists:transactions,id',
+                'payment_method' => 'required|in:va,qris,banktransfer,cstore,cc',
+                'payment_channel' => 'required|string'
             ]);
 
-            $data['invoice'] = 'INN-'.rand(000000,999999); 
-            $nights = date_diff(date_create($data['check_in']), date_create($data['check_out']))->format("%a");
+            $transaction = Transaction::findOrFail($request->transaction_id);
+            
+            if ($transaction->isPaid()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaction already paid'
+                ], 400);
+            }
 
+            $iPaymuService = new IPaymuService();
+            
+            // Calculate admin fee if not already set
+            if (!$transaction->admin_fee) {
+                $adminFee = $iPaymuService->calculateFee($transaction->total_price, $request->payment_method);
+                $totalAmount = $transaction->total_price + $adminFee;
+            } else {
+                $adminFee = $transaction->admin_fee;
+                $totalAmount = $transaction->total_price;
+            }
+            
+            // Prepare payment data
+            $paymentData = [
+                'name' => $transaction->name,
+                'phone' => $transaction->phone,
+                'email' => $transaction->email,
+                'amount' => $iPaymuService->formatAmount($totalAmount),
+                'notifyUrl' => route('payment.ipaymu.notify'),
+                'returnUrl' => route('payment.ipaymu.return', ['reference_id' => $transaction->invoice]),
+                'cancelUrl' => route('payment.ipaymu.cancel', ['reference_id' => $transaction->invoice]),
+                'referenceId' => $transaction->invoice,
+                'buyerName' => $transaction->name,
+                'buyerEmail' => $transaction->email,
+                'buyerPhone' => $transaction->phone,
+                'paymentMethod' => $request->payment_method,
+                'paymentChannel' => $request->payment_channel,
+                'product' => [[
+                    'name' => 'Hotel Booking - ' . $transaction->room->name,
+                    'price' => $iPaymuService->formatAmount($totalAmount - $adminFee),
+                    'quantity' => 1,
+                    'category' => 'Hotel'
+                ]],
+                'expired' => 24, // 24 hours
+                'expiredType' => 'hours'
+            ];
+
+            // Add admin fee as separate product if exists
+            if ($adminFee > 0) {
+                $paymentData['product'][] = [
+                    'name' => 'Admin Fee - ' . ucfirst($request->payment_method),
+                    'price' => $iPaymuService->formatAmount($adminFee),
+                    'quantity' => 1,
+                    'category' => 'Fee'
+                ];
+            }
+
+            // Create payment
+            $response = $iPaymuService->createTransaction($paymentData);
+
+            if ($response['Status'] == 200) {
+                // Update transaction
+                $transaction->update([
+                    'payment_url' => $response['Data']['Url'],
+                    'payment_method' => $request->payment_method,
+                    'payment_method_detail' => $request->payment_channel,
+                    'admin_fee' => $adminFee,
+                    'total_price' => $totalAmount,
+                    'ipaymu_transaction_id' => $response['Data']['TransactionId'],
+                    'ipaymu_session_id' => $response['Data']['SessionID'],
+                    'ipaymu_response' => $response,
+                    'payment_deadline' => Carbon::now()->addHours(24),
+                    'payment_status' => 'PENDING'
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'payment_url' => $response['Data']['Url'],
+                        'transaction_id' => $response['Data']['TransactionId'],
+                        'session_id' => $response['Data']['SessionID'],
+                        'total_amount' => $totalAmount,
+                        'admin_fee' => $adminFee
+                    ]
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $response['Message'] ?? 'Failed to create payment'
+            ], 400);
+
+        } catch (\Exception $e) {
+            Log::error('iPaymu Payment Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment creation failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Method untuk payment dengan Flip
+    public function onlinePayment(Request $request) {
+        $data = $request->validate([
+            'user_id' => 'nullable|exists:users,id',
+            'name' => 'required',
+            'email' => 'required|email',
+            'phone' => 'required',
+            'room_id' => 'required|exists:rooms,id',
+            'check_in' => 'required|date',
+            'check_out' => 'required|date|after:check_in',
+            'accomodation_plan_id' => 'nullable|array',
+            'accomodation_plan_id.*' => 'exists:accomodation_plans,id',
+            'promo_id' => 'nullable|array',
+            'promo_id.*' => 'exists:promos,id',
+            'payment_method' => 'required|in:va,qris,banktransfer,cstore,cc',
+            'payment_channel' => 'required|string'
+        ]);
+
+        // Validasi ketersediaan kamar
+        if (!$this->isRoomAvailableForDates($data['room_id'], $data['check_in'], $data['check_out'])) {
+            return back()->with('error', 'Kamar tidak tersedia untuk tanggal yang dipilih.');
+        }
+
+        return DB::transaction(function () use ($data, $request) {
+            // Atomic decrement dengan row locking
+            $room = Room::where('id', $data['room_id'])
+                    ->where('available_rooms', '>', 0)
+                    ->lockForUpdate()
+                    ->first();
+
+            if (!$room) {
+                return back()->with('error', 'Kamar tidak tersedia saat ini.');
+            }
+
+            // Generate invoice
+            $data['invoice'] = $this->generateUniqueInvoice(); 
+            $nights = date_diff(date_create($data['check_in']), date_create($data['check_out']))->format("%a");
+            
+            $checkIn = Carbon::parse($data['check_in']);
+            $checkOut = Carbon::parse($data['check_out']);
+
+            // Buat transaction baru
             $transaction = new Transaction();
             $transaction->user_id = $data['user_id'];
             $transaction->name = $data['name'];
@@ -65,210 +190,328 @@ class PaymentController extends Controller
             $transaction->check_in = $data['check_in'];
             $transaction->check_out = $data['check_out'];
             $transaction->invoice = $data['invoice'];
-            $transaction->payment_method = 'xendit';
-            $transaction->payment_deadline = now()->addHours($this->site_settings->payment_deadline ?? 1);
+            $transaction->payment_method = $data['payment_method'];
+            $transaction->payment_method_detail = $data['payment_channel'];
+            $transaction->payment_deadline = now()->addHours($this->site_settings->payment_deadline);
+            
             $transaction->save();
-
-            $transaction->accomodation_plans()->sync($request->accomodation_plan_id);
-            $transaction->promos()->sync($request->promo_id);
-
+            
+            // Sinkronisasi data accomodation_plan_id dan promo_id
+            if (!empty($request->accomodation_plan_id)) {
+                $transaction->accomodation_plans()->sync($request->accomodation_plan_id);
+            }
+            if (!empty($request->promo_id)) {
+                $transaction->promos()->sync($request->promo_id);
+            }
+            
+            // Hitung total accommodation plan
             $accomodation_plan_amount = 0;
             foreach($transaction->accomodation_plans as $accomodation_plan) {
                 $accomodation_plan_amount += $accomodation_plan->price;
             }
-
+            
+            // Hitung total promo
             $promo_amount = 0;
             foreach($transaction->promos as $promo) {
                 $promo_amount += $promo->amount;
             }
-
+            
             $base_price = $nights * $transaction->room->price;
             $promo_price = (int) $base_price * ($promo_amount / 100);
-            $total_amount = $base_price + $accomodation_plan_amount - $promo_price;
+            $subtotal = $base_price + $accomodation_plan_amount - $promo_price;
+            
+            // Initialize iPaymu Service
+            $iPaymuService = new IPaymuService();
+            
+            // Calculate admin fee based on payment method
+            $admin_fee = $iPaymuService->calculateFee($subtotal, $data['payment_method']);
+            $total_amount = $subtotal + $admin_fee;
+            
+            // Log untuk debugging
+            Log::info('iPaymu Payment Data:', [
+                'invoice' => $transaction->invoice,
+                'subtotal' => $subtotal,
+                'admin_fee' => $admin_fee,
+                'total_amount' => $total_amount,
+                'payment_method' => $data['payment_method'],
+                'payment_channel' => $data['payment_channel']
+            ]);
 
+            // Prepare payment data for iPaymu
             $paymentData = [
-                'external_id' => $data['invoice'],
-                'amount' => $total_amount,
-                'description' => 'Pembayaran '.$transaction->room->name.' dari UNS Inn Hotel selama '.$nights.' malam',
-                'invoice_duration' => 60 * 60 * ($this->site_settings->payment_deadline ?? 1),
-                'customer' => [
-                    'given_names' => $transaction->name,
-                    'email' => $transaction->email,
-                    'mobile_number' => $transaction->phone,
-                ],
-                'success_redirect_url' => route('payment.success', $transaction->invoice),
-                'failure_redirect_url' => route('payment.failed', $transaction->invoice),
-                'currency' => 'IDR',
-                'payment_methods' => ["CREDIT_CARD", "BCA", "BNI", "BSI", "BRI", "MANDIRI", "PERMATA", 
-                                    "ALFAMART", "INDOMARET", "OVO", "DANA", "SHOPEEPAY", "LINKAJA", "QRIS"]
+                'name' => $transaction->name,
+                'phone' => $transaction->phone,
+                'email' => $transaction->email,
+                'amount' => $iPaymuService->formatAmount($total_amount),
+                'notifyUrl' => route('payment.ipaymu.notify'),
+                'returnUrl' => route('payment.ipaymu.return', ['reference_id' => $transaction->invoice]),
+                'cancelUrl' => route('payment.ipaymu.cancel', ['reference_id' => $transaction->invoice]),
+                'referenceId' => $transaction->invoice,
+                'buyerName' => $transaction->name,
+                'buyerEmail' => $transaction->email,
+                'buyerPhone' => $transaction->phone,
+                'paymentMethod' => $data['payment_method'],
+                'paymentChannel' => $data['payment_channel'],
+                'product' => [[
+                    'name' => 'Hotel Booking - ' . $transaction->room->name . ' (' . $nights . ' malam)',
+                    'price' => $iPaymuService->formatAmount($subtotal),
+                    'quantity' => 1,
+                    'category' => 'Hotel',
+                    'sku' => $transaction->room->id,
+                    'weight' => 1
+                ]],
+                'expired' => $this->site_settings->payment_deadline, // hours
+                'expiredType' => 'hours',
+                'comments' => 'Booking kamar hotel periode ' . $checkIn->format('d/m/Y') . ' - ' . $checkOut->format('d/m/Y')
             ];
 
-            $apiInstance = new InvoiceApi();
-            $createInvoiceRequest = new CreateInvoiceRequest($paymentData);
-            
-            $result = $apiInstance->createInvoice($createInvoiceRequest);
-            
-            $transaction->payment_status = "PENDING";
-            $transaction->payment_url = $result['invoice_url'];
-            $transaction->total_price = $total_amount;
-            $transaction->xendit_invoice_id = $result['id'];
-            $transaction->save();
+            // Add admin fee as separate product if exists
+            if ($admin_fee > 0) {
+                $paymentData['product'][] = [
+                    'name' => 'Admin Fee - ' . ucfirst($data['payment_method']),
+                    'price' => $iPaymuService->formatAmount($admin_fee),
+                    'quantity' => 1,
+                    'category' => 'Fee',
+                    'sku' => 'ADMIN_FEE',
+                    'weight' => 0
+                ];
+            }
 
-            $room = Room::find($transaction->room_id);
-            $room->decrementAvailableRooms();
+            try {
+                // Create payment with iPaymu
+                $response = $iPaymuService->createTransaction($paymentData);
 
-            $this->sendBookingConfirmationMessage($transaction);
-            return redirect($result['invoice_url']);
+                // Log full response untuk debugging
+                Log::info('iPaymu Full Response: ', $response);
+
+                if ($response['Status'] == 200 && isset($response['Data'])) {
+                    // PERBAIKAN UTAMA: Handle berbagai jenis payment URL
+                    $paymentUrl = $this->determinePaymentUrl($response['Data'], $data['payment_method']);
+
+                    if (!$paymentUrl) {
+                        Log::error('Failed to determine payment URL from iPaymu response', [
+                            'payment_method' => $data['payment_method'],
+                            'response_data' => $response['Data']
+                        ]);
+                        throw new \Exception('Unable to generate payment URL from iPaymu response');
+                    }
+
+                    // Update transaction dengan response iPaymu
+                    $transaction->payment_status = "PENDING";
+                    $transaction->payment_url = $paymentUrl;
+                    $transaction->total_price = $total_amount;
+                    $transaction->admin_fee = $admin_fee;
+                    
+                    // Handle berbagai kemungkinan format ID transaksi
+                    $transaction->ipaymu_transaction_id = $response['Data']['TransactionId'] ?? $response['Data']['transaction_id'] ?? null;
+                    $transaction->ipaymu_session_id = $response['Data']['SessionID'] ?? $response['Data']['SessionId'] ?? $response['Data']['session_id'] ?? null;
+                    
+                    $transaction->ipaymu_response = $response;
+                    
+                    // Set expired date
+                    if (isset($response['Data']['Expired']) || isset($response['Data']['expired'])) {
+                        try {
+                            $expiredDate = $response['Data']['Expired'] ?? $response['Data']['expired'];
+                            $transaction->ipaymu_expired_date = Carbon::parse($expiredDate);
+                        } catch (\Exception $e) {
+                            $transaction->ipaymu_expired_date = $transaction->payment_deadline;
+                        }
+                    } else {
+                        $transaction->ipaymu_expired_date = $transaction->payment_deadline;
+                    }
+                    
+                    $transaction->save();
+                    
+                    // Decrement available rooms
+                    $room->decrementAvailableRooms();
+                    
+                    // Send booking confirmation message
+                    $this->sendBookingConfirmationMessage($transaction);
+                    
+                    return redirect()->route('payment.bill', $transaction->invoice);
+                } else {
+                    Log::error('iPaymu API Error: ', $response);
+                    $errorMessage = $response['Message'] ?? $response['Keterangan'] ?? 'Unknown error from iPaymu';
+                    throw new \Exception('iPaymu API Error: ' . $errorMessage);
+                }
+            } catch(\Exception $e) {
+                Log::error('iPaymu Payment Error: ' . $e->getMessage());
+                throw $e; // Akan rollback transaction
+            }
+        });
+    }
+
+   private function determinePaymentUrl($responseData, $paymentMethod)
+    {
+        // Log response data untuk debugging
+        Log::info('Determining payment URL', [
+            'payment_method' => $paymentMethod,
+            'available_fields' => array_keys($responseData)
+        ]);
+
+        switch ($paymentMethod) {
+            case 'qris':
+                // Untuk QRIS, prioritaskan QrTemplate (halaman payment) daripada QrImage (hanya gambar)
+                if (!empty($responseData['QrTemplate'])) {
+                    return $responseData['QrTemplate'];
+                }
+                if (!empty($responseData['QrImage'])) {
+                    return $responseData['QrImage'];
+                }
+                break;
+
+            case 'va':
+            case 'banktransfer':
+            case 'cstore':
+            case 'cc':
+            default:
+                // Untuk payment method lain, cari URL standar
+                $possibleUrlFields = ['Url', 'url', 'PaymentUrl', 'payment_url', 'Link', 'link'];
+                
+                foreach ($possibleUrlFields as $field) {
+                    if (!empty($responseData[$field])) {
+                        return $responseData[$field];
+                    }
+                }
+                
+                // Jika tidak ada URL standar, coba QrTemplate sebagai fallback
+                if (!empty($responseData['QrTemplate'])) {
+                    return $responseData['QrTemplate'];
+                }
+                break;
+        }
+
+        return null;
+    }
+
+    public function iPaymuReturn(Request $request)
+    {
+        try {
+            $transactionId = $request->get('trx_id');
+            $status = $request->get('status');
+            $referenceId = $request->get('reference_id');
+
+            if ($referenceId) {
+                $transaction = Transaction::where('invoice', $referenceId)->first();
+                
+                if ($transaction) {
+                    // Check actual status from iPaymu
+                    $iPaymuService = new IPaymuService();
+                    $statusResponse = $iPaymuService->checkTransactionStatus($transaction->ipaymu_transaction_id);
+                    
+                    if ($statusResponse['Status'] == 200) {
+                        $paymentStatus = strtoupper($statusResponse['Data']['Status']);
+                        
+                        $transaction->update([
+                            'payment_status' => $paymentStatus,
+                            'ipaymu_response' => $statusResponse
+                        ]);
+
+                        if ($paymentStatus === 'BERHASIL' || $paymentStatus === 'PAID') {
+                            return redirect()->route('payment.success', $transaction->invoice)
+                                        ->with('success', 'Payment completed successfully!');
+                        }
+                    }
+                    
+                    return redirect()->route('payment.timeout', $transaction->invoice)
+                                ->with('info', 'Please complete your payment.');
+                }
+            }
+
+            return redirect()->route('frontpage.index')->with('error', 'Transaction not found.');
 
         } catch (\Exception $e) {
-            Log::error('Xendit Payment Error: '.$e->getMessage());
-            return redirect()->back()->with('error', 'Payment initialization failed: '.$e->getMessage());
+            Log::error('iPaymu Return Error: ' . $e->getMessage());
+            return redirect()->route('frontpage.index')->with('error', 'An error occurred.');
         }
     }
 
-    public function xenditWebhook(Request $request)
+    /**
+     * Handle iPaymu notification/webhook
+     */
+    public function iPaymuNotify(Request $request)
     {
         try {
-            // Log semua request untuk debugging
-            Log::info('Xendit Webhook Received:', [
-                'headers' => $request->headers->all(),
-                'body' => $request->all(),
-                'method' => $request->method(),
-                'url' => $request->url()
+            $signature = $request->header('signature');
+            $body = $request->getContent();
+
+            $iPaymuService = new IPaymuService();
+            
+            if (!$iPaymuService->verifyCallback($signature, $body)) {
+                Log::warning('Invalid iPaymu callback signature');
+                return response('Unauthorized', 401);
+            }
+
+            $data = json_decode($body, true);
+            
+            $transaction = Transaction::where('ipaymu_transaction_id', $data['trx_id'])->first();
+            
+            if (!$transaction) {
+                Log::warning('Transaction not found for iPaymu notification: ' . $data['trx_id']);
+                return response('Transaction not found', 404);
+            }
+
+            $paymentStatus = strtoupper($data['status']);
+            
+            // Map iPaymu status to our status
+            $statusMapping = [
+                'BERHASIL' => 'PAID',
+                'PAID' => 'PAID',
+                'PENDING' => 'PENDING',
+                'EXPIRED' => 'EXPIRED',
+                'FAILED' => 'FAILED',
+                'CANCELLED' => 'CANCELLED'
+            ];
+
+            $mappedStatus = $statusMapping[$paymentStatus] ?? 'PENDING';
+
+            $transaction->update([
+                'payment_status' => $mappedStatus,
+                'ipaymu_response' => $data
             ]);
-            
-            // Validasi callback token (jika ada)
-            $callbackToken = config('services.xendit.callback_token');
-            if ($callbackToken) {
-                $xenditCallbackToken = $request->header('x-callback-token');
+
+            // Handle successful payment
+            if ($mappedStatus === 'PAID') {
+                // Add any additional logic for successful payment
+                // e.g., send confirmation email, update room availability, etc.
                 
-                if ($callbackToken !== $xenditCallbackToken) {
-                    Log::error('Xendit webhook invalid token', [
-                        'expected' => $callbackToken,
-                        'received' => $xenditCallbackToken
-                    ]);
-                    return response()->json(['error' => 'Invalid token'], 403);
-                }
+                Log::info('Payment successful for transaction: ' . $transaction->invoice);
             }
 
-            $data = $request->all();
-            
-            // Validasi data yang diperlukan
-            if (!isset($data['external_id']) || !isset($data['status'])) {
-                Log::error('Xendit webhook missing required fields', $data);
-                return response()->json(['error' => 'Missing required fields'], 400);
-            }
-
-            $status = $data['status'];
-            $externalId = $data['external_id'];
-
-            // Handle berdasarkan status dengan database transaction
-            return DB::transaction(function () use ($externalId, $status, $data) {
-                // Cari transaksi dengan lock
-                $transaction = Transaction::where('invoice', $externalId)
-                    ->lockForUpdate()
-                    ->first();
-
-                if (!$transaction) {
-                    Log::error('Transaction not found for external_id: '.$externalId);
-                    return response()->json(['error' => 'Transaction not found'], 404);
-                }
-
-                Log::info('Processing transaction:', [
-                    'invoice' => $transaction->invoice,
-                    'current_status' => $transaction->payment_status,
-                    'new_status' => $status
-                ]);
-
-                // Handle berdasarkan status
-                switch ($status) {
-                    case 'PAID':
-                    case 'SETTLED':
-                        // Cek apakah sudah diproses sebelumnya
-                        if ($transaction->payment_status === 'PAID') {
-                            Log::info('Transaction already processed as PAID: ' . $transaction->invoice);
-                            return response()->json(['message' => 'Already processed'], 200);
-                        }
-                        
-                        // Update status menjadi PAID
-                        $transaction->payment_status = 'PAID';
-                        $transaction->paid_at = now();
-                        $transaction->payment_deadline = null;
-                        
-                        // Store additional Xendit data
-                        if (isset($data['id'])) {
-                            $transaction->xendit_invoice_id = $data['id'];
-                        }
-                        
-                        // Assign room number jika belum ada
-                        if (!$transaction->room_number) {
-                            $roomNumber = $this->assignAvailableRoomNumber(
-                                $transaction->room_id, 
-                                $transaction->check_in, 
-                                $transaction->check_out
-                            );
-                            
-                            if ($roomNumber) {
-                                $transaction->room_number = $roomNumber;
-                                Log::info('Room number assigned via webhook: ' . $roomNumber . ' for transaction: ' . $transaction->invoice);
-                            } else {
-                                Log::error('Failed to assign room number for transaction: ' . $transaction->invoice);
-                            }
-                        }
-                        
-                        $transaction->save();
-                        
-                        // Kirim notifikasi WhatsApp hanya sekali
-                        try {
-                            $messageSent = $this->sendPaymentSuccessMessage($transaction);
-                            Log::info('WhatsApp notification ' . ($messageSent ? 'sent successfully' : 'failed') . ' for transaction: ' . $transaction->invoice);
-                        } catch (\Exception $e) {
-                            Log::error('Failed to send WhatsApp notification: ' . $e->getMessage());
-                        }
-                        
-                        Log::info('Transaction marked as PAID via webhook: ' . $transaction->invoice);
-                        break;
-                        
-                    case 'EXPIRED':
-                        if ($transaction->payment_status === 'PENDING') {
-                            $transaction->payment_status = 'EXPIRED';
-                            $transaction->save();
-                            
-                            // Kembalikan stok kamar
-                            $room = Room::find($transaction->room_id);
-                            if ($room) {
-                                $room->incrementAvailableRooms();
-                            }
-                            
-                            Log::info('Transaction marked as EXPIRED: ' . $transaction->invoice);
-                        }
-                        break;
-                        
-                    case 'FAILED':
-                        if ($transaction->payment_status === 'PENDING') {
-                            $transaction->payment_status = 'FAILED';
-                            $transaction->save();
-                            
-                            // Kembalikan stok kamar
-                            $room = Room::find($transaction->room_id);
-                            if ($room) {
-                                $room->incrementAvailableRooms();
-                            }
-                            
-                            Log::info('Transaction marked as FAILED: ' . $transaction->invoice);
-                        }
-                        break;
-                }
-
-                return response()->json(['message' => 'Webhook processed successfully'], 200);
-            });
+            return response('OK', 200);
 
         } catch (\Exception $e) {
-            Log::error('Xendit Webhook Error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
-            ]);
-            return response()->json(['error' => 'Processing failed'], 500);
+            Log::error('iPaymu Notify Error: ' . $e->getMessage());
+            return response('Internal Server Error', 500);
+        }
+    }
+
+    /**
+     * Handle iPaymu cancel URL
+     */
+    public function iPaymuCancel(Request $request)
+    {
+        try {
+            $referenceId = $request->get('reference_id');
+            
+            if ($referenceId) {
+                $transaction = Transaction::where('invoice', $referenceId)->first();
+                
+                if ($transaction) {
+                    $transaction->update([
+                        'payment_status' => 'CANCELLED'
+                    ]);
+                    
+                    return redirect()->route('payment.failed', $transaction->id)
+                                ->with('error', 'Payment was cancelled.');
+                }
+            }
+
+            return redirect()->route('frontpage.index')->with('error', 'Transaction not found.');
+
+        } catch (\Exception $e) {
+            Log::error('iPaymu Cancel Error: ' . $e->getMessage());
+            return redirect()->route('frontpage.index')->with('error', 'An error occurred.');
         }
     }
 
@@ -282,17 +525,14 @@ class PaymentController extends Controller
             'check_in' => 'required',
             'check_out' => 'required',
             'accomodation_plan_id' => 'nullable|array',
-            'accomodation_plan_id.*' => 'exists:accomdation_plans,id',
+            'accomodation_plan_id.*' => 'exists:accomodation_plans,id',
             'promo_id' => 'nullable|array',
             'promo_id.*' => 'exists:promos,id',
         ]);
-        // buat data invoice
-        $data['invoice'] = 'INN-'.rand(000000,999999); 
-        // buat data jumlah malam dari selisih tanggal check in dan out untuk kalkulasi harga akhir
+        
+        $data['invoice'] = $this->generateUniqueInvoice(); 
         $nights = date_diff(date_create($data['check_in']), date_create($data['check_out']))->format("%a");
 
-        // Buat data transaction baru dengan beberapa data awal
-        // Adapun data lain spt, harga total akan diperbarui di akhir
         $transaction = new Transaction();
         $transaction->user_id = $data['user_id'];
         $transaction->name = $data['name'];
@@ -303,30 +543,33 @@ class PaymentController extends Controller
         $transaction->check_out = $data['check_out'];
         $transaction->invoice = $data['invoice'];
         $transaction->payment_method = 'Cash';
-        $transaction->payment_deadline = now()->addHours($this->site_settings->payment_deadline ?? 1);
+        $transaction->payment_deadline = now()->addHours($this->site_settings->payment_deadline);
         $transaction->save();
-        // lakukan sinkronisasi data accomodation_plan_id dan promo_id
+        
         $transaction->accomodation_plans()->sync($request->accomodation_plan_id);
         $transaction->promos()->sync($request->promo_id);
+        
         $accomodation_plan_amount = 0;
-        // Lakukan perulangan untuk menghitung total biaya accomodation plan
         foreach($transaction->accomodation_plans as $accomodation_plan) {
             $accomodation_plan_amount += $accomodation_plan->price;
         }
+        
         $promo_amount = 0;
-        // Lakukan perulangan untuk menghituyng total promo
         foreach($transaction->promos as $promo) {
             $promo_amount += $promo->amount;
         }
+        
         $base_price = $nights * $transaction->room->price;
         $promo_price = (int) $base_price * ($promo_amount / 100);
-
         $total_amount = $base_price + $accomodation_plan_amount - $promo_price;
 
         $transaction->payment_status = "PENDING";
         $transaction->payment_url = '';
         $transaction->total_price = $total_amount;
         $transaction->save();
+
+        // Send cash payment booking confirmation
+        $this->sendCashPaymentBookingMessage($transaction);
 
         return redirect()->route('payment.success', $transaction->invoice);
     }
@@ -341,17 +584,14 @@ class PaymentController extends Controller
             'check_in' => 'required',
             'check_out' => 'required',
             'accomodation_plan_id' => 'nullable|array',
-            'accomodation_plan_id.*' => 'exists:accomdation_plans,id',
+            'accomodation_plan_id.*' => 'exists:accomodation_plans,id',
             'promo_id' => 'nullable|array',
             'promo_id.*' => 'exists:promos,id',
         ]);
-        // buat data invoice
-        $data['invoice'] = 'INN-'.rand(000000,999999); 
-        // buat data jumlah malam dari selisih tanggal check in dan out untuk kalkulasi harga akhir
+        
+        $data['invoice'] = $this->generateUniqueInvoice(); 
         $nights = date_diff(date_create($data['check_in']), date_create($data['check_out']))->format("%a");
 
-        // Buat data transaction baru dengan beberapa data awal
-        // Adapun data lain spt, harga total akan diperbarui di akhir
         $transaction = new Transaction();
         $transaction->user_id = $data['user_id'];
         $transaction->name = $data['name'];
@@ -363,54 +603,58 @@ class PaymentController extends Controller
         $transaction->invoice = $data['invoice'];
         $transaction->payment_method = 'Saldo';
         $transaction->save();
-        // lakukan sinkronisasi data accomodation_plan_id dan promo_id
+        
         $transaction->accomodation_plans()->sync($request->accomodation_plan_id);
         $transaction->promos()->sync($request->promo_id);
+        
         $accomodation_plan_amount = 0;
-        // Lakukan perulangan untuk menghitung total biaya accomodation plan
         foreach($transaction->accomodation_plans as $accomodation_plan) {
             $accomodation_plan_amount += $accomodation_plan->price;
         }
+        
         $promo_amount = 0;
-        // Lakukan perulangan untuk menghituyng total promo
         foreach($transaction->promos as $promo) {
             $promo_amount += $promo->amount;
         }
+        
         $base_price = $nights * $transaction->room->price;
         $promo_price = (int) $base_price * ($promo_amount / 100);
-
         $total_amount = $base_price + $accomodation_plan_amount - $promo_price;
 
         $transaction->payment_status = "PENDING";
         $transaction->payment_url = '';
         $transaction->total_price = $total_amount;
-        $transaction->payment_deadline = now()->addHours($this->site_settings->payment_deadline ?? 1);
+        $transaction->payment_deadline = now()->addHours($this->site_settings->payment_deadline);
         $transaction->save();
+        
         $room = Room::where('id', $transaction->room_id)->first();
         $room->decrementAvailableRooms();
 
         $lastBalance = Saldo::where('user_id', $transaction->user_id)
                         ->latest()
-                        ->first(); // Gunakan first() karena kita akan handle jika null
+                        ->first();
 
-        // Hitung saldo baru
         $newAmount = $lastBalance ? $lastBalance->amount - $transaction->total_price : $transaction->total_price;
 
-        // Buat record saldo baru
         Saldo::create([
             'user_id' => $transaction->user_id,
-            'transaction_id' => $transaction->id, // Pastikan ini sesuai dengan kolom di database
+            'transaction_id' => $transaction->id,
             'debit' => 0,
             'credit' => $transaction->total_price,
             'amount' => $newAmount,
             'description' => 'Reservasi Kamar'
         ]);
 
+        // Send credit payment confirmation
+        $this->sendSaldoPaymentConfirmationMessage($transaction);
+
         return redirect()->route('payment.bill', $transaction->invoice);
     }
 
     public function bill(Transaction $transaction) {
         if($transaction->payment_deadline < Carbon::now()) {
+            // Send timeout notification before redirecting
+            $this->sendPaymentTimeoutMessage($transaction);
             return redirect()->route('payment.timeout', $transaction->invoice);
         }
 
@@ -418,16 +662,22 @@ class PaymentController extends Controller
     }
 
     public function timeout(Transaction $transaction) {
-        // $transaction = Transaction::where('invoice',$id)->firstOrFail();
-        $room = Room::where('id', $transaction->room_id)->firstOrFail();
-        if($transaction->payment_status == "PENDING")  {
-            $transaction->payment_status = "CANCELLED";
-            $transaction->save();
-            $room->incrementAvailableRooms();
-            return view('frontpage.payment.timeout');
-        } elseif($transaction->payment_status == 'PAID') {
-            return redirect()->route('payment.success', $transaction->invoice);
-        }
+        return DB::transaction(function () use ($transaction) {
+            $room = Room::where('id', $transaction->room_id)->lockForUpdate()->firstOrFail();
+            
+            if($transaction->payment_status == "PENDING") {
+                $transaction->payment_status = "CANCELLED";
+                $transaction->save();
+                $room->incrementAvailableRooms();
+                
+                // Send cancellation notification
+                $this->sendBookingCancellationMessage($transaction);
+                
+                return view('frontpage.payment.timeout');
+            } elseif($transaction->payment_status == 'PAID') {
+                return redirect()->route('payment.success', $transaction->invoice);
+            }
+        });
     }
 
     public function success(Transaction $transaction)
@@ -435,61 +685,44 @@ class PaymentController extends Controller
         $room = Room::where('id', $transaction->room_id)->firstOrFail();
         
         return DB::transaction(function () use ($transaction, $room) {
-            // UNTUK XENDIT: Jangan proses lagi jika sudah PAID (sudah diproses di webhook)
-            if($transaction->payment_method == 'xendit') {
-                // Jika sudah PAID dari webhook, hanya tampilkan halaman success
-                if($transaction->payment_status == 'PAID') {
-                    Log::info('Xendit transaction already processed via webhook: ' . $transaction->invoice);
-                    return view('frontpage.payment.success', compact('transaction'));
-                }
-                
-                // Jika belum PAID, proses manual (fallback jika webhook belum jalan)
+            if(($transaction->payment_method == 'Flip')) {
                 $transaction->payment_status = "PAID";
-                $transaction->payment_deadline = NULL;
-                $transaction->paid_at = now();
                 
-                // Assign room number jika belum ada
-                if (!$transaction->room_number) {
-                    $roomNumber = $this->assignAvailableRoomNumber(
-                        $transaction->room_id, 
-                        $transaction->check_in, 
-                        $transaction->check_out
-                    );
-                    
-                    if (!$roomNumber) {
-                        Log::error('No available room number for transaction: ' . $transaction->invoice);
-                        return back()->with('error', 'Terjadi kesalahan dalam assign nomor kamar.');
-                    }
-                    
-                    $transaction->room_number = $roomNumber;
+                // PERBAIKAN 2: Assign proper room number
+                $roomNumber = $this->assignAvailableRoomNumber(
+                    $transaction->room_id, 
+                    $transaction->check_in, 
+                    $transaction->check_out
+                );
+                
+                if (!$roomNumber) {
+                    Log::error('No available room number for transaction: ' . $transaction->invoice);
+                    return back()->with('error', 'Terjadi kesalahan dalam assign nomor kamar.');
                 }
                 
+                $transaction->room_number = $roomNumber;
+                $transaction->payment_deadline = NULL;
                 $transaction->save();
                 
-                // Send notification hanya jika belum dikirim dari webhook
+                // Send payment success notification
                 $this->sendPaymentSuccessMessage($transaction);
-                Log::info('Xendit manual success processing for: ' . $transaction->invoice);
                 
             } elseif($transaction->payment_method == 'Saldo') {
                 $transaction->payment_status = "PAID";
-                $transaction->payment_deadline = NULL;
-                $transaction->paid_at = now();
                 
-                // Assign room number jika belum ada
-                if (!$transaction->room_number) {
-                    $roomNumber = $this->assignAvailableRoomNumber(
-                        $transaction->room_id, 
-                        $transaction->check_in, 
-                        $transaction->check_out
-                    );
-                    
-                    if (!$roomNumber) {
-                        return back()->with('error', 'Terjadi kesalahan dalam assign nomor kamar.');
-                    }
-                    
-                    $transaction->room_number = $roomNumber;
+                // PERBAIKAN 2: Assign proper room number
+                $roomNumber = $this->assignAvailableRoomNumber(
+                    $transaction->room_id, 
+                    $transaction->check_in, 
+                    $transaction->check_out
+                );
+                
+                if (!$roomNumber) {
+                    return back()->with('error', 'Terjadi kesalahan dalam assign nomor kamar.');
                 }
                 
+                $transaction->room_number = $roomNumber;
+                $transaction->payment_deadline = NULL;
                 $transaction->save();
 
                 // Handle saldo deduction (only if not already handled)
@@ -508,72 +741,67 @@ class PaymentController extends Controller
                     ]);
                 }
                 
+                // Send saldo payment success notification
                 $this->sendSaldoPaymentSuccessMessage($transaction);
                 
             } elseif($transaction->payment_method == 'Cash'){
                 $transaction->payment_status = "PENDING";
-                $transaction->payment_deadline = NULL;
                 
-                // Assign room number jika belum ada
-                if (!$transaction->room_number) {
-                    $roomNumber = $this->assignAvailableRoomNumber(
-                        $transaction->room_id, 
-                        $transaction->check_in, 
-                        $transaction->check_out
-                    );
-                    
-                    if (!$roomNumber) {
-                        return back()->with('error', 'Terjadi kesalahan dalam assign nomor kamar.');
-                    }
-                    
-                    $transaction->room_number = $roomNumber;
+                // PERBAIKAN 2: Assign proper room number
+                $roomNumber = $this->assignAvailableRoomNumber(
+                    $transaction->room_id, 
+                    $transaction->check_in, 
+                    $transaction->check_out
+                );
+                
+                if (!$roomNumber) {
+                    return back()->with('error', 'Terjadi kesalahan dalam assign nomor kamar.');
                 }
                 
+                $transaction->room_number = $roomNumber;
+                $transaction->payment_deadline = NULL;
                 $transaction->save();
+                
+                // Send cash payment reminder
                 $this->sendCashPaymentReminderMessage($transaction);
                 
             } elseif($transaction->payment_method == 'Split Payment (Saldo & Cash)'){
                 $transaction->payment_status = "PENDING";
-                $transaction->payment_deadline = NULL;
                 
-                // Assign room number jika belum ada
-                if (!$transaction->room_number) {
-                    $roomNumber = $this->assignAvailableRoomNumber(
-                        $transaction->room_id, 
-                        $transaction->check_in, 
-                        $transaction->check_out
-                    );
-                    
-                    if (!$roomNumber) {
-                        return back()->with('error', 'Terjadi kesalahan dalam assign nomor kamar.');
-                    }
-                    
-                    $transaction->room_number = $roomNumber;
+                // PERBAIKAN 2: Assign proper room number
+                $roomNumber = $this->assignAvailableRoomNumber(
+                    $transaction->room_id, 
+                    $transaction->check_in, 
+                    $transaction->check_out
+                );
+                
+                if (!$roomNumber) {
+                    return back()->with('error', 'Terjadi kesalahan dalam assign nomor kamar.');
                 }
                 
+                $transaction->room_number = $roomNumber;
+                $transaction->payment_deadline = NULL;
                 $transaction->save();
+                
+                // Send split payment confirmation
                 $this->sendSplitPaymentCashConfirmationMessage($transaction);
                 
             } elseif($transaction->payment_method == 'Split Payment (Saldo & Flip)'){
                 $transaction->payment_status = "PAID";
-                $transaction->payment_deadline = NULL;
-                $transaction->paid_at = now();
                 
-                // Assign room number jika belum ada
-                if (!$transaction->room_number) {
-                    $roomNumber = $this->assignAvailableRoomNumber(
-                        $transaction->room_id, 
-                        $transaction->check_in, 
-                        $transaction->check_out
-                    );
-                    
-                    if (!$roomNumber) {
-                        return back()->with('error', 'Terjadi kesalahan dalam assign nomor kamar.');
-                    }
-                    
-                    $transaction->room_number = $roomNumber;
+                // PERBAIKAN 2: Assign proper room number
+                $roomNumber = $this->assignAvailableRoomNumber(
+                    $transaction->room_id, 
+                    $transaction->check_in, 
+                    $transaction->check_out
+                );
+                
+                if (!$roomNumber) {
+                    return back()->with('error', 'Terjadi kesalahan dalam assign nomor kamar.');
                 }
                 
+                $transaction->room_number = $roomNumber;
+                $transaction->payment_deadline = NULL;
                 $transaction->save();
 
                 // Handle saldo deduction (only if not already handled)
@@ -592,6 +820,7 @@ class PaymentController extends Controller
                     ]);
                 }
                 
+                // Send split payment success notification
                 $this->sendSplitPaymentFlipSuccessMessage($transaction);
             }
             
@@ -628,17 +857,14 @@ class PaymentController extends Controller
             'check_in' => 'required',
             'check_out' => 'required',
             'accomodation_plan_id' => 'nullable|array',
-            'accomodation_plan_id.*' => 'exists:accomdation_plans,id',
+            'accomodation_plan_id.*' => 'exists:accomodation_plans,id',
             'promo_id' => 'nullable|array',
             'promo_id.*' => 'exists:promos,id',
         ]);
-        // buat data invoice
-        $data['invoice'] = 'INN-'.rand(000000,999999); 
-        // buat data jumlah malam dari selisih tanggal check in dan out untuk kalkulasi harga akhir
+        
+        $data['invoice'] = $this->generateUniqueInvoice(); 
         $nights = date_diff(date_create($data['check_in']), date_create($data['check_out']))->format("%a");
 
-        // Buat data transaction baru dengan beberapa data awal
-        // Adapun data lain spt, harga total akan diperbarui di akhir
         $transaction = new Transaction();
         $transaction->user_id = $data['user_id'];
         $transaction->name = $data['name'];
@@ -650,19 +876,20 @@ class PaymentController extends Controller
         $transaction->invoice = $data['invoice'];
         $transaction->payment_method = 'Split Payment (Saldo & Cash)';
         $transaction->save();
-        // lakukan sinkronisasi data accomodation_plan_id dan promo_id
+        
         $transaction->accomodation_plans()->sync($request->accomodation_plan_id);
         $transaction->promos()->sync($request->promo_id);
+        
         $accomodation_plan_amount = 0;
-        // Lakukan perulangan untuk menghitung total biaya accomodation plan
         foreach($transaction->accomodation_plans as $accomodation_plan) {
             $accomodation_plan_amount += $accomodation_plan->price;
         }
+        
         $promo_amount = 0;
-        // Lakukan perulangan untuk menghituyng total promo
         foreach($transaction->promos as $promo) {
             $promo_amount += $promo->amount;
         }
+        
         $base_price = $nights * $transaction->room->price;
         $promo_price = (int) $base_price * ($promo_amount / 100);
         $saldo = Saldo::where('user_id', Auth::user()->id)->latest()->first();
@@ -684,28 +911,30 @@ class PaymentController extends Controller
             'description' => 'Reservasi Kamar',
         ]);
 
+        // Send split payment cash booking confirmation
+        $this->sendSplitPaymentCashBookingMessage($transaction, $saldo->amount, $total_amount);
+
         return redirect()->route('payment.success', $transaction->invoice);
     }
 
-    public function addXendit(Request $request){
-        // Xendit::setApiKey(env('XENDIT_SECRET_KEY'));
-        // dd($request->all());
-        // ambil dan validasi seluruh request dari user
+    public function addFlip(Request $request){
         $data = $request->validate([
             'user_id' => 'nullable|exists:users,id',
             'name' => 'required',
             'email' => 'required|email',
             'phone' => 'required',
             'room_id' => 'required|exists:rooms,id',
-            'check_in' => 'required',
-            'check_out' => 'required',
+            'check_in' => 'required|date',
+            'check_out' => 'required|date|after:check_in',
             'accomodation_plan_id' => 'nullable|array',
-            'accomodation_plan_id.*' => 'exists:accomdation_plans,id',
+            'accomodation_plan_id.*' => 'exists:accomodation_plans,id',
             'promo_id' => 'nullable|array',
             'promo_id.*' => 'exists:promos,id',
         ]);
-        $data['invoice'] = 'INN-'.rand(000000,999999); 
+        
+        $data['invoice'] = $this->generateUniqueInvoice();
         $nights = date_diff(date_create($data['check_in']), date_create($data['check_out']))->format("%a");
+        
         $transaction = new Transaction();
         $transaction->user_id = $data['user_id'];
         $transaction->name = $data['name'];
@@ -715,16 +944,22 @@ class PaymentController extends Controller
         $transaction->check_in = $data['check_in'];
         $transaction->check_out = $data['check_out'];
         $transaction->invoice = $data['invoice'];
-        $transaction->payment_method = 'Split Payment (Saldo & Xendit)';
-        $transaction->payment_deadline = now()->addHours($this->site_settings->payment_deadline ?? 1);
+        $transaction->payment_method = 'Split Payment (Saldo & Flip)';
+        $transaction->payment_deadline = now()->addHours($this->site_settings->payment_deadline);
         $transaction->save();
-        $transaction->accomodation_plans()->sync($request->accomodation_plan_id);
-        $transaction->promos()->sync($request->promo_id);
+        
+        if (!empty($request->accomodation_plan_id)) {
+            $transaction->accomodation_plans()->sync($request->accomodation_plan_id);
+        }
+        if (!empty($request->promo_id)) {
+            $transaction->promos()->sync($request->promo_id);
+        }
+        
         $accomodation_plan_amount = 0;
-
         foreach($transaction->accomodation_plans as $accomodation_plan) {
             $accomodation_plan_amount += $accomodation_plan->price;
         }
+        
         $promo_amount = 0;
         foreach($transaction->promos as $promo) {
             $promo_amount += $promo->amount;
@@ -734,103 +969,277 @@ class PaymentController extends Controller
         $promo_price = (int) $base_price * ($promo_amount / 100);
         $saldo = Saldo::where('user_id', Auth::user()->id)->latest()->first();
 
-        $total_amount = $base_price + $accomodation_plan_amount - $promo_price - $saldo->amount;
+        $total_amount = $base_price + $accomodation_plan_amount - $promo_price - ($saldo ? $saldo->amount : 0);
 
-        $paymentData = [
-            'external_id' => $data['invoice'],
+        // Format expired date sesuai dokumentasi Flip: "YYYY-MM-DD HH:MM" (tanpa detik)
+        $expiredDate = $transaction->payment_deadline->format('Y-m-d H:i');
+
+        // Buat bill dengan Flip
+        $billData = [
+            'title' => 'Pembayaran '.$transaction->room->name.' - UNS Inn Hotel (Split Payment)',
             'amount' => $total_amount,
-            'description' => 'Pembayaran '.$transaction->room->name.' dari UNS Inn Hotel selama '.$nights.' malam',
-            'invoice_duration' => 60 * 60 * $this->site_settings->payment_deadline ?? 1,
-            'customer' => [
-                'given_names' => $transaction->name,
-                'email' => $transaction->email,
-                'mobile_number' => $transaction->phone,
-            ],
-            'success_redirect_url' => route('payment.success', $transaction->invoice),
-            'failure_redirect_url' => 'https://yahoo.com',
-            'currency' => 'IDR',
-            'payment_method' => ["CREDIT_CARD", "BCA", "BNI", "BSI", "BRI", "MANDIRI", "PERMATA", "SAHABAT_SAMPOERNA", "BNC", "ALFAMART", "INDOMARET", "OVO", "DANA", "SHOPEEPAY", "LINKAJA", "JENIUSPAY", "DD_BRI", "DD_BCA_KLIKPAY", "KREDIVO", "AKULAKU", "UANGME", "ATOME", "QRIS"]
+            'type' => 'SINGLE',
+            'expired_date' => $expiredDate, // Format yang diperbaiki
+            'redirect_url' => url('/payment/success/' . $transaction->invoice), // Menggunakan url() helper
+            'sender_name' => $transaction->name,
+            'sender_email' => $transaction->email,
+            'sender_phone_number' => $transaction->phone,
         ];
-        $room = Room::where('id', $transaction->room_id)->first();
-        $apiInstance = new InvoiceApi();
-        $createInvoiceRequest = new CreateInvoiceRequest($paymentData);
+        
+        Log::info('Split Payment Flip Data:', $billData);
+        
         try {
-            $result = $apiInstance->createInvoice($createInvoiceRequest);
-            $transaction->payment_status = "PENDING";
-            $transaction->payment_url = $result['invoice_url'];
-            $transaction->total_price = $total_amount;
-            $transaction->save();
+            $response = Http::withHeaders([
+                'Authorization' => 'Basic ' . base64_encode($this->flip_secret_key . ':'),
+                'Content-Type' => 'application/x-www-form-urlencoded'
+            ])->asForm()->post('https://bigflip.id/big_sandbox_api/v2/pwf/bill', $billData);
 
-            $lastBalance = Saldo::where('user_id', Auth::user()->id)->latest()->first();
+            if ($response->successful()) {
+                $result = $response->json();
+                
+                $transaction->payment_status = "PENDING";
+                
+                // FIX: Pastikan URL memiliki https://
+                $paymentUrl = $result['link_url'];
+                if (!str_starts_with($paymentUrl, 'http://') && !str_starts_with($paymentUrl, 'https://')) {
+                    $paymentUrl = 'https://' . $paymentUrl;
+                } elseif (str_starts_with($paymentUrl, 'http://')) {
+                    // Konversi http ke https untuk keamanan
+                    $paymentUrl = str_replace('http://', 'https://', $paymentUrl);
+                }
+                $transaction->payment_url = $paymentUrl;
+                
+                $transaction->total_price = $total_amount;
+                $transaction->flip_bill_id = $result['link_id'];
+                $transaction->flip_response = $result;
+                
+                if (isset($result['expired_date'])) {
+                    try {
+                        $transaction->flip_expired_date = Carbon::parse($result['expired_date']);
+                    } catch (\Exception $e) {
+                        $transaction->flip_expired_date = $transaction->payment_deadline;
+                    }
+                } else {
+                    $transaction->flip_expired_date = $transaction->payment_deadline;
+                }
+                
+                $transaction->save();
 
-            Saldo::create([
-                'amount' => $transaction->total_price - $lastBalance->amount,
-                'user_id' => Auth::user()->id,
-                'credit' => 0,
-                'debit' => $transaction->total_price - $lastBalance->amount,
-                'description' => 'Penambahan Saldo dari Xendit',
-            ]);
+                // Log URL yang telah diperbaiki untuk split payment
+                Log::info('Fixed Split Payment URL:', [
+                    'original_url' => $result['link_url'],
+                    'fixed_url' => $transaction->payment_url
+                ]);
 
-            $room->decrementAvailableRooms();
-            return redirect()->route('payment.bill', $transaction->invoice);
-        } catch(\Xendit\XenditSdkException $e) {
+                // Handle saldo deduction
+                if ($saldo && $saldo->amount > 0) {
+                    Saldo::create([
+                        'amount' => 0,
+                        'user_id' => Auth::user()->id,
+                        'transaction_id' => $transaction->id,
+                        'credit' => $saldo->amount,
+                        'debit' => 0,
+                        'description' => 'Reservasi Kamar (Split Payment)',
+                    ]);
+                }
 
+                $room = Room::where('id', $transaction->room_id)->first();
+                $room->decrementAvailableRooms();
+                
+                // Send split payment booking confirmation with Flip
+                $this->sendSplitPaymentFlipBookingMessage($transaction, $saldo ? $saldo->amount : 0, $total_amount);
+                
+                return redirect()->route('payment.bill', $transaction->invoice);
+            } else {
+                Log::error('Flip API Error (Split Payment): ' . $response->body());
+                return back()->with('error', 'Terjadi kesalahan saat membuat pembayaran. Silakan coba lagi.');
+            }
+        } catch(\Exception $e) {
+            Log::error('Flip Payment Error (Split Payment): ' . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan saat membuat pembayaran. Silakan coba lagi.');
         }
     }
 
-    private function assignAvailableRoomNumber($roomId, $checkIn, $checkOut)
+    // Callback untuk menangani response dari Flip setelah pembayaran
+    public function flipCallback(Request $request)
     {
-        return DB::transaction(function () use ($roomId, $checkIn, $checkOut) {
-            $room = Room::lockForUpdate()->find($roomId);
-            if (!$room) {
-                Log::error('Room not found: ' . $roomId);
-                return null;
+        try {
+            // Log semua data yang diterima dari Flip
+            Log::info('Flip Callback received:', $request->all());
+
+            $billId = $request->input('id');
+            $status = $request->input('status');
+            $amount = $request->input('amount');
+
+            // Validasi apakah data yang diperlukan ada
+            if (!$billId || !$status) {
+                Log::error('Flip Callback: Missing required data');
+                return response()->json(['status' => 'error', 'message' => 'Missing data'], 400);
             }
 
-            // Get all occupied room numbers for the overlapping date range
-            $occupiedRoomNumbers = Transaction::where('room_id', $roomId)
-                ->whereIn('payment_status', ['PAID', 'PENDING']) // Hanya yang benar-benar menggunakan kamar
-                ->where(function ($query) use ($checkIn, $checkOut) {
-                    $query->where(function ($q) use ($checkIn, $checkOut) {
-                        // New booking starts during existing booking
-                        $q->whereBetween('check_in', [$checkIn, $checkOut]);
-                    })->orWhere(function ($q) use ($checkIn, $checkOut) {
-                        // New booking ends during existing booking
-                        $q->whereBetween('check_out', [$checkIn, $checkOut]);
-                    })->orWhere(function ($q) use ($checkIn, $checkOut) {
-                        // Existing booking is completely within new booking
-                        $q->where('check_in', '>=', $checkIn)
-                        ->where('check_out', '<=', $checkOut);
-                    })->orWhere(function ($q) use ($checkIn, $checkOut) {
-                        // New booking is completely within existing booking
-                        $q->where('check_in', '<=', $checkIn)
-                        ->where('check_out', '>=', $checkOut);
-                    });
-                })
-                ->whereNotNull('room_number')
-                ->lockForUpdate() // Lock untuk mencegah race condition
-                ->pluck('room_number')
-                ->toArray();
+            // Cari transaction berdasarkan flip_bill_id
+            $transaction = Transaction::where('flip_bill_id', $billId)->first();
 
-            Log::info('Room assignment check:', [
-                'room_id' => $roomId,
-                'check_in' => $checkIn,
-                'check_out' => $checkOut,
-                'occupied_numbers' => $occupiedRoomNumbers,
-                'total_rooms' => $room->total_rooms
+            if (!$transaction) {
+                Log::error('Flip Callback: Transaction not found for bill ID: ' . $billId);
+                return response()->json(['status' => 'error', 'message' => 'Transaction not found'], 404);
+            }
+
+            // Validasi amount jika diperlukan
+            if ($amount && $transaction->total_price != $amount) {
+                Log::warning('Flip Callback: Amount mismatch', [
+                    'expected' => $transaction->total_price,
+                    'received' => $amount
+                ]);
+            }
+
+            // Update status transaction berdasarkan status dari Flip
+            switch ($status) {
+                case 'SUCCESSFUL':
+                case 'success':
+                case 'paid':
+                    if ($transaction->payment_status !== 'PAID') {
+                        $transaction->payment_status = 'PAID';
+                        $transaction->room_number = rand(1, $transaction->room->total_rooms);
+                        $transaction->payment_deadline = null;
+                        $transaction->save();
+
+                        // Update flip_response dengan data callback
+                        $callbackData = $request->all();
+                        $existingResponse = $transaction->flip_response ?? [];
+                        $transaction->flip_response = array_merge($existingResponse, ['callback' => $callbackData]);
+                        $transaction->save();
+
+                        // Send payment success callback notification
+                        $this->sendFlipCallbackSuccessMessage($transaction);
+
+                        Log::info('Flip Callback: Transaction marked as PAID', ['invoice' => $transaction->invoice]);
+                    }
+                    break;
+
+                case 'FAILED':
+                case 'failed':
+                case 'CANCELLED':
+                case 'cancelled':
+                case 'EXPIRED':
+                case 'expired':
+                    if ($transaction->payment_status === 'PENDING') {
+                        $transaction->payment_status = 'CANCELLED';
+                        $transaction->save();
+
+                        // Kembalikan available rooms
+                        $room = Room::find($transaction->room_id);
+                        if ($room) {
+                            $room->incrementAvailableRooms();
+                        }
+
+                        // Send payment failure callback notification
+                        $this->sendFlipCallbackFailureMessage($transaction);
+
+                        Log::info('Flip Callback: Transaction cancelled', ['invoice' => $transaction->invoice]);
+                    }
+                    break;
+
+                default:
+                    Log::warning('Flip Callback: Unknown status received', ['status' => $status]);
+                    break;
+            }
+
+            return redirect()->route('payment.success', $transaction->invoice);
+
+        } catch (\Exception $e) {
+            Log::error('Flip Callback Error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
             ]);
+            return response()->json(['status' => 'error', 'message' => 'Internal server error'], 500);
+        }
+    }
 
-            // Find first available room number
-            for ($roomNumber = 1; $roomNumber <= $room->total_rooms; $roomNumber++) {
-                if (!in_array($roomNumber, $occupiedRoomNumbers)) {
-                    Log::info('Assigned room number: ' . $roomNumber . ' for room_id: ' . $roomId);
-                    return $roomNumber;
+    // Webhook untuk menangani notifikasi dari Flip (berbeda dengan callback)
+    public function flipWebhook(Request $request)
+    {
+        try {
+            // Verifikasi signature jika Flip menyediakan
+            $signature = $request->header('X-Flip-Signature');
+            $payload = $request->getContent();
+            
+            // Uncomment jika Flip menyediakan signature validation
+            // if ($signature && !$this->validateFlipSignature($payload, $signature)) {
+            //     Log::error('Flip Webhook: Invalid signature');
+            //     return response()->json(['status' => 'error'], 401);
+            // }
+
+            $data = json_decode($payload, true);
+            Log::info('Flip Webhook received:', $data);
+
+            if (isset($data['id']) && isset($data['status'])) {
+                $transaction = Transaction::where('flip_bill_id', $data['id'])->first();
+                
+                if ($transaction) {
+                    // Update flip_response
+                    $existingResponse = $transaction->flip_response ?? [];
+                    $transaction->flip_response = array_merge($existingResponse, ['webhook' => $data]);
+                    $transaction->save();
+
+                    // Process status update similar to callback
+                    $this->processFlipStatusUpdate($transaction, $data['status']);
                 }
             }
 
-            Log::error('No available room numbers for room_id: ' . $roomId);
-            return null;
-        });
+            return response()->json(['status' => 'success'], 200);
+        } catch (\Exception $e) {
+            Log::error('Flip Webhook Error: ' . $e->getMessage());
+            return response()->json(['status' => 'error'], 500);
+        }
+    }
+
+    // Helper method untuk memproses update status
+    private function processFlipStatusUpdate($transaction, $status)
+    {
+        switch ($status) {
+            case 'SUCCESSFUL':
+            case 'success':
+            case 'paid':
+                if ($transaction->payment_status !== 'PAID') {
+                    $transaction->payment_status = 'PAID';
+                    $transaction->room_number = rand(1, $transaction->room->total_rooms);
+                    $transaction->payment_deadline = null;
+                    $transaction->save();
+                    
+                    // Send webhook success notification
+                    $this->sendFlipWebhookSuccessMessage($transaction);
+                }
+                break;
+
+            case 'FAILED':
+            case 'failed':
+            case 'CANCELLED':
+            case 'cancelled':
+            case 'EXPIRED':
+            case 'expired':
+                if ($transaction->payment_status === 'PENDING') {
+                    $transaction->payment_status = 'CANCELLED';
+                    $transaction->save();
+
+                    $room = Room::find($transaction->room_id);
+                    if ($room) {
+                        $room->incrementAvailableRooms();
+                    }
+                    
+                    // Send webhook failure notification
+                    $this->sendFlipWebhookFailureMessage($transaction);
+                }
+                break;
+        }
+    }
+
+    // Helper method untuk validasi signature (jika Flip menyediakan)
+    private function validateFlipSignature($payload, $signature)
+    {
+        $validationToken = config('services.flip.validation_token');
+        $expectedSignature = hash_hmac('sha256', $payload, $validationToken);
+        return hash_equals($expectedSignature, $signature);
     }
 
     // ===============================
@@ -1467,6 +1876,141 @@ class PaymentController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to send thank you message: ' . $e->getMessage());
         }
+    }
+
+    // ===============================
+    // EXISTING HELPER METHODS
+    // ===============================
+
+    private function isRoomAvailableForDates($roomId, $checkIn, $checkOut)
+    {
+        // Ambil data room untuk mendapatkan total_rooms
+        $room = Room::find($roomId);
+        if (!$room) {
+            return false;
+        }
+        
+        // Hitung berapa kamar yang sudah dibooking untuk periode yang overlap
+        $overlappingBookings = Transaction::where('room_id', $roomId)
+            ->where('payment_status', '!=', 'CANCELLED') // Exclude cancelled bookings
+            ->where(function ($query) use ($checkIn, $checkOut) {
+                $query->where(function ($q) use ($checkIn, $checkOut) {
+                    // Case 1: Booking existing dimulai di antara tanggal yang diminta
+                    $q->where('check_in', '>=', $checkIn)
+                    ->where('check_in', '<', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    // Case 2: Booking existing berakhir di antara tanggal yang diminta  
+                    $q->where('check_out', '>', $checkIn)
+                    ->where('check_out', '<=', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    // Case 3: Booking existing mencakup seluruh periode yang diminta
+                    $q->where('check_in', '<=', $checkIn)
+                    ->where('check_out', '>=', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    // Case 4: Periode yang diminta mencakup seluruh booking existing
+                    $q->where('check_in', '>=', $checkIn)
+                    ->where('check_out', '<=', $checkOut);
+                });
+            })
+            ->count();
+
+        // Bandingkan dengan total kamar yang tersedia
+        // Jika booking yang overlap kurang dari total kamar, berarti masih tersedia
+        return $overlappingBookings < $room->total_rooms;
+    }
+
+    private function getAvailableRoomsCount($roomId, $checkIn, $checkOut)
+    {
+        $room = Room::find($roomId);
+        if (!$room) {
+            return 0;
+        }
+        
+        $overlappingBookings = Transaction::where('room_id', $roomId)
+            ->where('payment_status', '!=', 'CANCELLED')
+            ->where(function ($query) use ($checkIn, $checkOut) {
+                $query->where(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_in', '>=', $checkIn)
+                    ->where('check_in', '<', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_out', '>', $checkIn)
+                    ->where('check_out', '<=', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_in', '<=', $checkIn)
+                    ->where('check_out', '>=', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_in', '>=', $checkIn)
+                    ->where('check_out', '<=', $checkOut);
+                });
+            })
+            ->count();
+
+        return $room->total_rooms - $overlappingBookings;
+    }
+
+    private function generateUniqueInvoice()
+    {
+        do {
+            $timestamp = date('ymd'); // Format: 241207 untuk 2024-12-07
+            $random = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+            $invoice = 'INN-' . $timestamp . '-' . $random;
+            
+            // Check if invoice already exists
+            $exists = Transaction::where('invoice', $invoice)->exists();
+        } while ($exists);
+        
+        return $invoice;
+    }
+
+    private function assignAvailableRoomNumber($roomId, $checkIn, $checkOut)
+    {
+        $room = Room::find($roomId);
+        if (!$room) {
+            return null;
+        }
+
+        // Get all occupied room numbers for the overlapping date range
+        $occupiedRoomNumbers = Transaction::where('room_id', $roomId)
+            ->where('payment_status', '!=', 'CANCELLED')
+            ->where(function ($query) use ($checkIn, $checkOut) {
+                $query->where(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_in', '>=', $checkIn)
+                    ->where('check_in', '<', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_out', '>', $checkIn)
+                    ->where('check_out', '<=', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_in', '<=', $checkIn)
+                    ->where('check_out', '>=', $checkOut);
+                })->orWhere(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_in', '>=', $checkIn)
+                    ->where('check_out', '<=', $checkOut);
+                });
+            })
+            ->whereNotNull('room_number')
+            ->pluck('room_number')
+            ->toArray();
+
+        // Find first available room number
+        for ($roomNumber = 1; $roomNumber <= $room->total_rooms; $roomNumber++) {
+            if (!in_array($roomNumber, $occupiedRoomNumbers)) {
+                return $roomNumber;
+            }
+        }
+
+        // If no room number available, return null
+        return null;
+    }
+
+    private function getTimezoneAwareCarbon($datetime = null)
+    {
+        $userTimezone = config('app.timezone', 'Asia/Jakarta');
+        
+        if ($datetime) {
+            return Carbon::parse($datetime, $userTimezone);
+        }
+        
+        return Carbon::now($userTimezone);
     }
 
     private function formatDateTimeForUser($datetime, $format = 'Y-m-d H:i:s')
