@@ -31,18 +31,21 @@ Route::middleware('auth')->prefix('/payment')->name('payment.')->group(function(
     Route::post('/store/online', [PaymentController::class, 'onlinePayment'])->name('online');
     Route::post('/store/creditPayment', [PaymentController::class, 'creditPayment'])->name('creditPayment');
     Route::post('/store/addCash', [PaymentController::class, 'addCash'])->name('addCash');
-    Route::post('/store/addFlip', [PaymentController::class, 'addFlip'])->name('addFlip'); // Changed from addXendit to addFlip
+    Route::post('/store/addIPaymu', [PaymentController::class, 'addIPaymu'])->name('addIPaymu'); // Changed from addFlip to addIPaymu
 
     Route::get('/success/{transaction:invoice}', [PaymentController::class, 'success'])->name('success');
     Route::get('/failed/{id}', [PaymentController::class, 'failed'])->name('failed');
     Route::get('/timeout/{transaction:invoice}', [PaymentController::class, 'timeout'])->name('timeout');
 });
 
-// Routes untuk Flip callbacks dan webhooks (tidak perlu middleware auth)
-Route::prefix('/payment/flip')->name('payment.flip.')->group(function() {
-    // Callback URL - dipanggil setelah user melakukan pembayaran
-    Route::post('/callback', [PaymentController::class, 'flipCallback'])->name('callback');
+// Routes untuk iPaymu callbacks dan webhooks (tidak perlu middleware auth)
+Route::prefix('/payment/ipaymu')->name('payment.ipaymu.')->group(function() {
+    // Return URL - dipanggil setelah user melakukan pembayaran
+    Route::get('/return', [PaymentController::class, 'iPaymuReturn'])->name('return');
     
-    // Webhook URL - untuk notifikasi status pembayaran dari Flip
-    Route::post('/webhook', [PaymentController::class, 'flipWebhook'])->name('webhook');
+    // Callback/Notify URL - untuk notifikasi status pembayaran dari iPaymu
+    Route::post('/notify', [PaymentController::class, 'iPaymuNotify'])->name('notify');
+    
+    // Cancel URL - jika user membatalkan pembayaran
+    Route::get('/cancel', [PaymentController::class, 'iPaymuCancel'])->name('cancel');
 });

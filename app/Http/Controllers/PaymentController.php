@@ -9,6 +9,7 @@ use App\Models\Saldo;
 use App\Traits\Fonnte;
 use App\Models\Transaction;
 use App\Models\SiteSettings;
+use App\Services\IPaymuService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -40,6 +41,8 @@ class PaymentController extends Controller
             'accomodation_plan_id.*' => 'exists:accomodation_plans,id',
             'promo_id' => 'nullable|array',
             'promo_id.*' => 'exists:promos,id',
+            'payment_method' => 'required|in:va,qris,banktransfer,cstore,cc',
+            'payment_channel' => 'required|string'
         ]);
 
         // PERBAIKAN 1: Validasi tanggal overlap dengan existing bookings
@@ -50,9 +53,9 @@ class PaymentController extends Controller
         return DB::transaction(function () use ($data, $request) {
             // PERBAIKAN 2: Atomic decrement dengan row locking
             $room = Room::where('id', $data['room_id'])
-                       ->where('available_rooms', '>', 0)
-                       ->lockForUpdate()
-                       ->first();
+                    ->where('available_rooms', '>', 0)
+                    ->lockForUpdate()
+                    ->first();
 
             if (!$room) {
                 return back()->with('error', 'Kamar tidak tersedia saat ini.');
@@ -75,7 +78,8 @@ class PaymentController extends Controller
             $transaction->check_in = $data['check_in'];
             $transaction->check_out = $data['check_out'];
             $transaction->invoice = $data['invoice'];
-            $transaction->payment_method = 'Flip';
+            $transaction->payment_method = $data['payment_method'];
+            $transaction->payment_method_detail = $data['payment_channel'];
             $transaction->payment_deadline = now()->addHours($this->site_settings->payment_deadline);
             
             $transaction->save();
@@ -102,61 +106,88 @@ class PaymentController extends Controller
             
             $base_price = $nights * $transaction->room->price;
             $promo_price = (int) $base_price * ($promo_amount / 100);
-            $total_amount = $base_price + $accomodation_plan_amount - $promo_price;
+            $subtotal = $base_price + $accomodation_plan_amount - $promo_price;
             
-            $expiredDate = $transaction->payment_deadline->format('Y-m-d H:i');
+            // Initialize iPaymu Service
+            $iPaymuService = new IPaymuService();
+            
+            // Calculate admin fee based on payment method
+            $admin_fee = $iPaymuService->calculateFee($subtotal, $data['payment_method']);
+            $total_amount = $subtotal + $admin_fee;
             
             // Log untuk debugging
-            Log::info('Flip Payment Data:', [
+            Log::info('iPaymu Payment Data:', [
                 'invoice' => $transaction->invoice,
-                'amount' => $total_amount,
-                'expired_date_formatted' => $expiredDate,
+                'subtotal' => $subtotal,
+                'admin_fee' => $admin_fee,
+                'total_amount' => $total_amount,
+                'payment_method' => $data['payment_method'],
+                'payment_channel' => $data['payment_channel']
             ]);
 
-            // Buat bill dengan Flip
-            $billData = [
-                'title' => 'Pembayaran '.$transaction->room->name.' - UNS Inn Hotel',
-                'amount' => $total_amount,
-                'type' => 'SINGLE',
-                'expired_date' => $expiredDate,
-                'redirect_url' => url('/payment/success/' . $transaction->invoice),
-                'sender_name' => $transaction->name,
-                'sender_email' => $transaction->email,
-                'sender_phone_number' => $transaction->phone,
+            // Prepare payment data for iPaymu
+            $paymentData = [
+                'name' => $transaction->name,
+                'phone' => $transaction->phone,
+                'email' => $transaction->email,
+                'amount' => $iPaymuService->formatAmount($total_amount),
+                'notifyUrl' => route('payment.ipaymu.notify'),
+                'returnUrl' => route('payment.ipaymu.return', ['reference_id' => $transaction->invoice]),
+                'cancelUrl' => route('payment.ipaymu.cancel', ['reference_id' => $transaction->invoice]),
+                'referenceId' => $transaction->invoice,
+                'buyerName' => $transaction->name,
+                'buyerEmail' => $transaction->email,
+                'buyerPhone' => $transaction->phone,
+                'paymentMethod' => $data['payment_method'],
+                'paymentChannel' => $data['payment_channel'],
+                'product' => [[
+                    'name' => 'Hotel Booking - ' . $transaction->room->name . ' (' . $nights . ' malam)',
+                    'price' => $iPaymuService->formatAmount($subtotal),
+                    'quantity' => 1,
+                    'category' => 'Hotel',
+                    'sku' => $transaction->room->id,
+                    'weight' => 1
+                ]],
+                'expired' => $this->site_settings->payment_deadline, // hours
+                'expiredType' => 'hours',
+                'comments' => 'Booking kamar hotel periode ' . $checkIn->format('d/m/Y') . ' - ' . $checkOut->format('d/m/Y')
             ];
 
-            try {
-                $response = Http::withHeaders([
-                    'Authorization' => 'Basic ' . base64_encode($this->flip_secret_key . ':'),
-                    'Content-Type' => 'application/x-www-form-urlencoded'
-                ])->asForm()->post('https://bigflip.id/big_sandbox_api/v2/pwf/bill', $billData);
+            // Add admin fee as separate product if exists
+            if ($admin_fee > 0) {
+                $paymentData['product'][] = [
+                    'name' => 'Admin Fee - ' . ucfirst($data['payment_method']),
+                    'price' => $iPaymuService->formatAmount($admin_fee),
+                    'quantity' => 1,
+                    'category' => 'Fee',
+                    'sku' => 'ADMIN_FEE',
+                    'weight' => 0
+                ];
+            }
 
-                if ($response->successful()) {
-                    $result = $response->json();
-                    
+            try {
+                // Create payment with iPaymu
+                $response = $iPaymuService->createTransaction($paymentData);
+
+                if ($response['Status'] == 200) {
+                    // Update transaction dengan response iPaymu
                     $transaction->payment_status = "PENDING";
-                    
-                    // Fix URL
-                    $paymentUrl = $result['link_url'];
-                    if (!str_starts_with($paymentUrl, 'http://') && !str_starts_with($paymentUrl, 'https://')) {
-                        $paymentUrl = 'https://' . $paymentUrl;
-                    } elseif (str_starts_with($paymentUrl, 'http://')) {
-                        $paymentUrl = str_replace('http://', 'https://', $paymentUrl);
-                    }
-                    $transaction->payment_url = $paymentUrl;
-                    
+                    $transaction->payment_url = $response['Data']['Url'];
                     $transaction->total_price = $total_amount;
-                    $transaction->flip_bill_id = $result['link_id'];
-                    $transaction->flip_response = $result;
+                    $transaction->admin_fee = $admin_fee;
+                    $transaction->ipaymu_transaction_id = $response['Data']['TransactionId'];
+                    $transaction->ipaymu_session_id = $response['Data']['SessionID'];
+                    $transaction->ipaymu_response = $response;
                     
-                    if (isset($result['expired_date'])) {
+                    // Set expired date
+                    if (isset($response['Data']['Expired'])) {
                         try {
-                            $transaction->flip_expired_date = Carbon::parse($result['expired_date']);
+                            $transaction->ipaymu_expired_date = Carbon::parse($response['Data']['Expired']);
                         } catch (\Exception $e) {
-                            $transaction->flip_expired_date = $transaction->payment_deadline;
+                            $transaction->ipaymu_expired_date = $transaction->payment_deadline;
                         }
                     } else {
-                        $transaction->flip_expired_date = $transaction->payment_deadline;
+                        $transaction->ipaymu_expired_date = $transaction->payment_deadline;
                     }
                     
                     $transaction->save();
@@ -169,14 +200,126 @@ class PaymentController extends Controller
                     
                     return redirect()->route('payment.bill', $transaction->invoice);
                 } else {
-                    Log::error('Flip API Error: ' . $response->body());
-                    throw new \Exception('Flip API Error');
+                    Log::error('iPaymu API Error: ', $response);
+                    throw new \Exception('iPaymu API Error: ' . ($response['Message'] ?? 'Unknown error'));
                 }
             } catch(\Exception $e) {
-                Log::error('Flip Payment Error: ' . $e->getMessage());
+                Log::error('iPaymu Payment Error: ' . $e->getMessage());
                 throw $e; // Akan rollback transaction
             }
         });
+    }
+
+    /**
+    * Method untuk mengupdate addIPaymu yang sudah dibuat sebelumnya
+    * Sekarang dapat digunakan untuk AJAX calls
+    */
+    public function addIPaymu(Request $request)
+    {
+        try {
+            $request->validate([
+                'transaction_id' => 'required|exists:transactions,id',
+                'payment_method' => 'required|in:va,qris,banktransfer,cstore,cc',
+                'payment_channel' => 'required|string'
+            ]);
+
+            $transaction = Transaction::findOrFail($request->transaction_id);
+            
+            if ($transaction->isPaid()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaction already paid'
+                ], 400);
+            }
+
+            $iPaymuService = new IPaymuService();
+            
+            // Calculate admin fee if not already set
+            if (!$transaction->admin_fee) {
+                $adminFee = $iPaymuService->calculateFee($transaction->total_price, $request->payment_method);
+                $totalAmount = $transaction->total_price + $adminFee;
+            } else {
+                $adminFee = $transaction->admin_fee;
+                $totalAmount = $transaction->total_price;
+            }
+            
+            // Prepare payment data
+            $paymentData = [
+                'name' => $transaction->name,
+                'phone' => $transaction->phone,
+                'email' => $transaction->email,
+                'amount' => $iPaymuService->formatAmount($totalAmount),
+                'notifyUrl' => route('payment.ipaymu.notify'),
+                'returnUrl' => route('payment.ipaymu.return', ['reference_id' => $transaction->invoice]),
+                'cancelUrl' => route('payment.ipaymu.cancel', ['reference_id' => $transaction->invoice]),
+                'referenceId' => $transaction->invoice,
+                'buyerName' => $transaction->name,
+                'buyerEmail' => $transaction->email,
+                'buyerPhone' => $transaction->phone,
+                'paymentMethod' => $request->payment_method,
+                'paymentChannel' => $request->payment_channel,
+                'product' => [[
+                    'name' => 'Hotel Booking - ' . $transaction->room->name,
+                    'price' => $iPaymuService->formatAmount($totalAmount - $adminFee),
+                    'quantity' => 1,
+                    'category' => 'Hotel'
+                ]],
+                'expired' => 24, // 24 hours
+                'expiredType' => 'hours'
+            ];
+
+            // Add admin fee as separate product if exists
+            if ($adminFee > 0) {
+                $paymentData['product'][] = [
+                    'name' => 'Admin Fee - ' . ucfirst($request->payment_method),
+                    'price' => $iPaymuService->formatAmount($adminFee),
+                    'quantity' => 1,
+                    'category' => 'Fee'
+                ];
+            }
+
+            // Create payment
+            $response = $iPaymuService->createTransaction($paymentData);
+
+            if ($response['Status'] == 200) {
+                // Update transaction
+                $transaction->update([
+                    'payment_url' => $response['Data']['Url'],
+                    'payment_method' => $request->payment_method,
+                    'payment_method_detail' => $request->payment_channel,
+                    'admin_fee' => $adminFee,
+                    'total_price' => $totalAmount,
+                    'ipaymu_transaction_id' => $response['Data']['TransactionId'],
+                    'ipaymu_session_id' => $response['Data']['SessionID'],
+                    'ipaymu_response' => $response,
+                    'payment_deadline' => Carbon::now()->addHours(24),
+                    'payment_status' => 'PENDING'
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'payment_url' => $response['Data']['Url'],
+                        'transaction_id' => $response['Data']['TransactionId'],
+                        'session_id' => $response['Data']['SessionID'],
+                        'total_amount' => $totalAmount,
+                        'admin_fee' => $adminFee
+                    ]
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $response['Message'] ?? 'Failed to create payment'
+            ], 400);
+
+        } catch (\Exception $e) {
+            Log::error('iPaymu Payment Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment creation failed: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function cashPayment(Request $request) {

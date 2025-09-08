@@ -41,4 +41,10 @@ return [
         'base_url' => env('FLIP_BASE_URL', 'https://bigflip.id/big_sandbox_api/v2'),
     ],
 
+    'ipaymu' => [
+        'api_key' => env('IPAYMU_API_KEY'),
+        'va' => env('IPAYMU_VA'),
+        'is_production' => env('IPAYMU_IS_PRODUCTION', false),
+    ],
+
 ];

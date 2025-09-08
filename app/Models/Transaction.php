@@ -27,7 +27,7 @@ class Transaction extends Model
         'payment_url',
         'payment_status',
         'payment_method',
-        'payment_method_detail', // New field for specific Flip payment method
+        'payment_method_detail', // New field for specific iPaymu payment method
         'total_price',
         'admin_fee', // New field for admin fee
         'created_at',   
@@ -36,14 +36,15 @@ class Transaction extends Model
         'checkin_date',
         'checkout_date',
 
-        'flip_bill_id',
-        'flip_response',
-        'flip_expired_date'
+        'ipaymu_transaction_id',
+        'ipaymu_session_id',
+        'ipaymu_response',
+        'ipaymu_expired_date'
     ];
 
     protected $casts = [
-        'flip_response' => 'array',
-        'flip_expired_date' => 'datetime',
+        'ipaymu_response' => 'array',
+        'ipaymu_expired_date' => 'datetime',
         'check_in' => 'date',
         'check_out' => 'date',
         'checkin_date' => 'datetime',
@@ -96,6 +97,16 @@ class Transaction extends Model
         return $query->where('payment_status', 'CANCELLED');
     }
 
+    public function scopeFailed($query)
+    {
+        return $query->where('payment_status', 'FAILED');
+    }
+
+    public function scopeExpired($query)
+    {
+        return $query->where('payment_status', 'EXPIRED');
+    }
+
     // Helper methods
     public function isPaid()
     {
@@ -110,6 +121,11 @@ class Transaction extends Model
     public function isCancelled()
     {
         return $this->payment_status === 'CANCELLED';
+    }
+
+    public function isFailed()
+    {
+        return $this->payment_status === 'FAILED';
     }
 
     public function isExpired()
@@ -138,41 +154,37 @@ class Transaction extends Model
     }
 
     /**
-     * Get the payment method display name
+     * Get the payment method display name for iPaymu
      */
     public function getPaymentMethodDisplayAttribute()
     {
-        if ($this->payment_method_detail) {
-            return $this->payment_method;
-        }
+        $methodNames = [
+            'va' => 'Virtual Account',
+            'qris' => 'QRIS',
+            'banktransfer' => 'Bank Transfer',
+            'cstore' => 'Convenience Store',
+            'cod' => 'Cash on Delivery',
+            'cc' => 'Credit Card'
+        ];
         
-        return $this->payment_method;
+        return $methodNames[$this->payment_method] ?? $this->payment_method;
     }
 
     /**
-     * Get payment method icon or color based on method
+     * Get payment method icon for iPaymu methods
      */
     public function getPaymentMethodIconAttribute()
     {
         $icons = [
-            'bca_va' => 'account_balance',
-            'bni_va' => 'account_balance', 
-            'bri_va' => 'account_balance',
-            'mandiri_va' => 'account_balance',
-            'permata_va' => 'account_balance',
-            'cimb_va' => 'account_balance',
-            'bsi_va' => 'account_balance',
+            'va' => 'account_balance',
             'qris' => 'qr_code',
-            'shopeepay' => 'wallet',
-            'gopay' => 'wallet',
-            'ovo' => 'wallet',
-            'dana' => 'wallet', 
-            'linkaja' => 'wallet',
-            'indomaret' => 'store',
-            'alfamart' => 'store'
+            'banktransfer' => 'account_balance',
+            'cstore' => 'store',
+            'cod' => 'local_shipping',
+            'cc' => 'credit_card'
         ];
 
-        return $icons[$this->payment_method_detail] ?? 'payment';
+        return $icons[$this->payment_method] ?? 'payment';
     }
 
     /**
@@ -181,33 +193,31 @@ class Transaction extends Model
     public function getPaymentMethodColorAttribute()
     {
         $colors = [
-            'bca_va' => 'blue',
-            'bni_va' => 'orange', 
-            'bri_va' => 'blue',
-            'mandiri_va' => 'yellow',
-            'permata_va' => 'green',
-            'cimb_va' => 'red',
-            'bsi_va' => 'green',
+            'va' => 'blue',
             'qris' => 'purple',
-            'shopeepay' => 'orange',
-            'gopay' => 'green',
-            'ovo' => 'purple',
-            'dana' => 'blue', 
-            'linkaja' => 'red',
-            'indomaret' => 'yellow',
-            'alfamart' => 'red'
+            'banktransfer' => 'green',
+            'cstore' => 'orange',
+            'cod' => 'gray',
+            'cc' => 'indigo'
         ];
 
-        return $colors[$this->payment_method_detail] ?? 'gray';
+        return $colors[$this->payment_method] ?? 'gray';
     }
 
     /**
-     * Check if payment method is e-wallet
+     * Check if payment method is virtual account
      */
-    public function isEWalletPayment()
+    public function isVirtualAccountPayment()
     {
-        $ewalletMethods = ['qris', 'shopeepay', 'gopay', 'ovo', 'dana', 'linkaja'];
-        return in_array($this->payment_method_detail, $ewalletMethods);
+        return $this->payment_method === 'va';
+    }
+
+    /**
+     * Check if payment method is QRIS
+     */
+    public function isQRISPayment()
+    {
+        return $this->payment_method === 'qris';
     }
 
     /**
@@ -215,17 +225,31 @@ class Transaction extends Model
      */
     public function isBankTransferPayment()
     {
-        $bankMethods = ['bca_va', 'bni_va', 'bri_va', 'mandiri_va', 'permata_va', 'cimb_va', 'bsi_va'];
-        return in_array($this->payment_method_detail, $bankMethods);
+        return $this->payment_method === 'banktransfer';
     }
 
     /**
-     * Check if payment method is retail
+     * Check if payment method is convenience store
      */
-    public function isRetailPayment()
+    public function isConvenienceStorePayment()
     {
-        $retailMethods = ['indomaret', 'alfamart'];
-        return in_array($this->payment_method_detail, $retailMethods);
+        return $this->payment_method === 'cstore';
+    }
+
+    /**
+     * Check if payment method is cash on delivery
+     */
+    public function isCODPayment()
+    {
+        return $this->payment_method === 'cod';
+    }
+
+    /**
+     * Check if payment method is credit card
+     */
+    public function isCreditCardPayment()
+    {
+        return $this->payment_method === 'cc';
     }
 
     /**
